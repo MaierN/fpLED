@@ -3,6 +3,8 @@
 
 #include "exception_handler.h"
 
+extern PCD_HandleTypeDef hpcd_USB_FS;
+
 void exception_handler_default_error() {
     volatile uint32_t count = 0;
     while (1) {

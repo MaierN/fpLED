@@ -12,7 +12,7 @@
 #define LED_PORT GPIOA
 #define LED_PORT_ENABLE __HAL_RCC_GPIOA_CLK_ENABLE
 
-#define LED_N 256      // number of led in each slice
+#define LED_N 16    // number of led in each slice
 #define LED_BYTE_N 3 // number of byte in each led
 
 #define TIM_2_PERIOD (SystemCoreClock / 800000) // 1250 [ns] period = 1/800000 [s]
@@ -28,7 +28,7 @@ DMA_HandleTypeDef dma_down_0;
 DMA_HandleTypeDef dma_down_1;
 
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4};
-uint32_t all_pins[] = {0xffffffff}; // mask to select every pin
+uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 uint8_t led_bit_buffer[8 * LED_BYTE_N * LED_N];
 
 uint32_t reset_counter = 0;
@@ -210,14 +210,20 @@ void leds_set_pixel(size_t strip, size_t pixel, uint8_t r, uint8_t g, uint8_t b)
 
         // put 1 to send 0 bit, put 0 to send 1 bit
 
-        if ((g >> (7-i)) & 0x1) led_bit_buffer[index + i + 0*8] &= ~pin;
-        else led_bit_buffer[index + i + 0*8] |= pin;
-        
-        if ((r >> (7-i)) & 0x1) led_bit_buffer[index + i + 1*8] &= ~pin;
-        else led_bit_buffer[index + i + 1*8] |= pin;
-        
-        if ((b >> (7-i)) & 0x1) led_bit_buffer[index + i + 2*8] &= ~pin;
-        else led_bit_buffer[index + i + 2*8] |= pin;
+        if ((g >> (7 - i)) & 0x1)
+            led_bit_buffer[index + i + 0 * 8] &= ~pin;
+        else
+            led_bit_buffer[index + i + 0 * 8] |= pin;
+
+        if ((r >> (7 - i)) & 0x1)
+            led_bit_buffer[index + i + 1 * 8] &= ~pin;
+        else
+            led_bit_buffer[index + i + 1 * 8] |= pin;
+
+        if ((b >> (7 - i)) & 0x1)
+            led_bit_buffer[index + i + 2 * 8] &= ~pin;
+        else
+            led_bit_buffer[index + i + 2 * 8] |= pin;
     }
 }
 
@@ -233,13 +239,4 @@ void leds_init() {
     leds_timer_init();
 
     send();
-
-    /*size_t i = 0;
-    while (1) {
-        size_t next_i = (i + 1) % LED_N;
-        set_pixel(0, next_i, 4, 4, 0);
-        set_pixel(0, i, 0, 0, 0);
-        i = next_i;
-        HAL_Delay(1000/16);
-    }*/
 }

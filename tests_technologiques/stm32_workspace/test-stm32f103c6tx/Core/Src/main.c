@@ -112,72 +112,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 	//HAL_TIM_Base_Start_IT(&htim2);
-//#define DATA_LENGTH 8
-	//uint8_t data[DATA_LENGTH] = { 1, 1, 2, 3, 5, 8, 13, 21 };
+#define DATA_LENGTH 8
+	uint8_t data[DATA_LENGTH] = { 1, 1, 2, 3, 5, 8, 13, 21 };
 
 	for (int i = 0; i < BUFFER_SIZE; i++) {
 		test_src_buffer[i] = 0x0;
 	}
-	uint8_t pin = (uint8_t)(GPIO_PIN_0 >> 0);
-	for (int i = 0; i < 3*10; i++) {
-
-		for (int j = 0; j < 8; j++) {
-			int k = i*8*8 + j*8;
-
-			if (colors[i % BYTES_COUNT] >> j & 0x1) {
-
-				test_src_buffer[k+0] |= pin;
-				test_src_buffer[k+1] |= pin;
-				test_src_buffer[k+2] |= pin;
-				test_src_buffer[k+3] |= pin;
-				test_src_buffer[k+4] |= pin;
-
-				test_src_buffer[k+5] &= ~pin;
-				test_src_buffer[k+6] &= ~pin;
-				test_src_buffer[k+7] &= ~pin;
-
-			} else {
-
-				test_src_buffer[k+0] |= pin;
-				test_src_buffer[k+1] |= pin;
-				test_src_buffer[k+2] |= pin;
-
-				test_src_buffer[k+3] &= ~pin;
-				test_src_buffer[k+4] &= ~pin;
-				test_src_buffer[k+5] &= ~pin;
-				test_src_buffer[k+6] &= ~pin;
-				test_src_buffer[k+7] &= ~pin;
-
-			}
-
-		}
-	}
-
-	/*for (int i = 0; i < 8*8*3*10; i += 8) {
-		// disons 148 ns par byte
-
-		test_src_buffer[i+0] |= pin;
-		test_src_buffer[i+1] |= pin;
-		test_src_buffer[i+2] |= pin;
-		test_src_buffer[i+3] |= pin;
-		test_src_buffer[i+4] |= pin;
-
-		test_src_buffer[i+5] &= ~pin;
-		test_src_buffer[i+6] &= ~pin;
-		test_src_buffer[i+7] &= ~pin;
-	}*/
-
-	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, 0);
-
-	HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel1, HAL_DMA_XFER_CPLT_CB_ID, TransferComplete);
-	HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel1, HAL_DMA_XFER_ERROR_CB_ID, TransferError);
-
-	if (HAL_DMA_Start_IT(&hdma_memtomem_dma1_channel1, (uint32_t) &test_src_buffer, (uint32_t) &GPIOA->ODR, BUFFER_SIZE) != HAL_OK) {
-		//if (HAL_DMA_Start_IT(&hdma_memtomem_dma1_channel1, (uint32_t) &test_src_buffer, (uint32_t) &test_dst_buffer, BUFFER_SIZE) != HAL_OK) {
-		Error_Handler();
-	}
-
-	uint32_t t0 = HAL_GetTick();
 
   /* USER CODE END 2 */
 
@@ -187,23 +127,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		//HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		/*uint8_t res = CDC_Transmit_FS(data, DATA_LENGTH);
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+		uint8_t res = CDC_Transmit_FS(data, DATA_LENGTH);
 		if (res != USBD_OK) {
-			//HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-			HAL_Delay(100);
-			//HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-		}
-
-		HAL_Delay(1000);*/
-
-		if (test_counter >= 10000) {
-			uint32_t t1 = HAL_GetTick() - t0;
-
 			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-			uint32_t t2 = t1;
-			test_counter = 0;
+			HAL_Delay(200);
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 		}
+
+		HAL_Delay(1000);
 	}
   /* USER CODE END 3 */
 }

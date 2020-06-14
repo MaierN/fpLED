@@ -1,8 +1,12 @@
 
 #include "stm32f1xx_hal.h"
 
+#include "usb_device.h"
+#include "usbd_cdc_if.h"
+
 #include "exception_handler/exception_handler.h"
 #include "leds/leds.h"
+#include "usb/usb.h"
 
 void system_clock_init();
 void gpio_init();
@@ -18,16 +22,40 @@ int main() {
     gpio_init();
 
     leds_init();
+    usb_init();
+
+#define DATA_LENGTH 8
+    uint8_t data[DATA_LENGTH] = {1, 1, 2, 3, 5, 8, 13, 21};
 
     while (1) {
-        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        /*HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+
+        for (int i = 1; i < 64; i++) {
+            leds_set_pixel(0, i, 10, 1, 16);
+            leds_set_pixel(0, i-1, 0, 0, 0);
+            HAL_Delay(50);
+        }
+        leds_set_pixel(0, 63, 0, 0, 0);*/
+
+        /*
         for (int i = 0; i < 4; i++) {
             leds_set_pixel(0, get_pos_pixel(3, i+3), 4, 4, 0);
             leds_set_pixel(1, get_pos_pixel(3, i+3), 4, 0, 4);
-            HAL_Delay(250);
+            //HAL_Delay(250);
             leds_set_pixel(0, get_pos_pixel(3, i+3), 0, 0, 0);
             leds_set_pixel(1, get_pos_pixel(3, i+3), 0, 0, 0);
         }
+        */
+
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        uint8_t res = CDC_Transmit_FS(data, DATA_LENGTH);
+        if (res != USBD_OK) {
+            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+            HAL_Delay(500);
+            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        }
+
+        HAL_Delay(1000);
     }
 }
 
