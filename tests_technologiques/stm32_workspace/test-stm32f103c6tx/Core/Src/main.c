@@ -42,8 +42,10 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim2;
+DMA_HandleTypeDef hdma_tim2_up;
+
 DMA_HandleTypeDef hdma_memtomem_dma1_channel1;
-DMA_HandleTypeDef hdma_memtomem_dma1_channel2;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -52,6 +54,7 @@ DMA_HandleTypeDef hdma_memtomem_dma1_channel2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
+static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -59,10 +62,10 @@ static void MX_DMA_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#define BUFFER_SIZE 4608
+#define BUFFER_SIZE 5000
 #define BYTES_COUNT 9
 int8_t test_src_buffer[BUFFER_SIZE] = { 0x0 };
-int8_t colors[BYTES_COUNT] = { 20, 0, 0, 0, 20, 0, 0, 0, 20 };
+int8_t colors[BYTES_COUNT] = { 5, 0, 0, 0, 5, 0, 0, 0, 5 };
 
 volatile uint32_t test_counter = 0;
 static void TransferComplete(DMA_HandleTypeDef *DmaHandle) {
@@ -105,6 +108,7 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
 
 	//HAL_TIM_Base_Start_IT(&htim2);
@@ -115,7 +119,7 @@ int main(void)
 		test_src_buffer[i] = 0x0;
 	}
 	uint8_t pin = (uint8_t)(GPIO_PIN_0 >> 0);
-	for (int i = 0; i < 3*24; i++) {
+	for (int i = 0; i < 3*10; i++) {
 
 		for (int j = 0; j < 8; j++) {
 			int k = i*8*8 + j*8;
@@ -163,6 +167,8 @@ int main(void)
 		test_src_buffer[i+7] &= ~pin;
 	}*/
 
+	HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, 0);
+
 	HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel1, HAL_DMA_XFER_CPLT_CB_ID, TransferComplete);
 	HAL_DMA_RegisterCallback(&hdma_memtomem_dma1_channel1, HAL_DMA_XFER_ERROR_CB_ID, TransferError);
 
@@ -194,8 +200,9 @@ int main(void)
 		if (test_counter >= 10000) {
 			uint32_t t1 = HAL_GetTick() - t0;
 
-			//HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 			uint32_t t2 = t1;
+			test_counter = 0;
 		}
 	}
   /* USER CODE END 3 */
@@ -245,11 +252,55 @@ void SystemClock_Config(void)
   }
 }
 
+/**
+  * @brief TIM2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM2_Init(void)
+{
+
+  /* USER CODE BEGIN TIM2_Init 0 */
+
+  /* USER CODE END TIM2_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM2_Init 1 */
+
+  /* USER CODE END TIM2_Init 1 */
+  htim2.Instance = TIM2;
+  htim2.Init.Prescaler = 32000;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 1000;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM2_Init 2 */
+
+  /* USER CODE END TIM2_Init 2 */
+
+}
+
 /** 
   * Enable DMA controller clock
   * Configure DMA for memory to memory transfers
   *   hdma_memtomem_dma1_channel1
-  *   hdma_memtomem_dma1_channel2
   */
 static void MX_DMA_Init(void) 
 {
@@ -264,31 +315,14 @@ static void MX_DMA_Init(void)
   hdma_memtomem_dma1_channel1.Init.MemInc = DMA_MINC_DISABLE;
   hdma_memtomem_dma1_channel1.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
   hdma_memtomem_dma1_channel1.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-  hdma_memtomem_dma1_channel1.Init.Mode = DMA_CIRCULAR;
+  hdma_memtomem_dma1_channel1.Init.Mode = DMA_NORMAL;
   hdma_memtomem_dma1_channel1.Init.Priority = DMA_PRIORITY_LOW;
   if (HAL_DMA_Init(&hdma_memtomem_dma1_channel1) != HAL_OK)
   {
     Error_Handler( );
   }
 
-  /* Configure DMA request hdma_memtomem_dma1_channel2 on DMA1_Channel2 */
-  hdma_memtomem_dma1_channel2.Instance = DMA1_Channel2;
-  hdma_memtomem_dma1_channel2.Init.Direction = DMA_MEMORY_TO_MEMORY;
-  hdma_memtomem_dma1_channel2.Init.PeriphInc = DMA_PINC_ENABLE;
-  hdma_memtomem_dma1_channel2.Init.MemInc = DMA_MINC_ENABLE;
-  hdma_memtomem_dma1_channel2.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
-  hdma_memtomem_dma1_channel2.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
-  hdma_memtomem_dma1_channel2.Init.Mode = DMA_NORMAL;
-  hdma_memtomem_dma1_channel2.Init.Priority = DMA_PRIORITY_LOW;
-  if (HAL_DMA_Init(&hdma_memtomem_dma1_channel2) != HAL_OK)
-  {
-    Error_Handler( );
-  }
-
   /* DMA interrupt init */
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
   /* DMA1_Channel2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
