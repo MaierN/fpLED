@@ -7,18 +7,27 @@
 void system_clock_init();
 void gpio_init();
 
+size_t get_pos_pixel(uint32_t x, uint32_t y) {
+    return 8 * y + (y % 2 == 0 ? x : 7 - x);
+}
+
 int main() {
     HAL_Init();
 
     system_clock_init();
-    //gpio_init();
+    gpio_init();
 
     leds_init();
 
     while (1) {
-        //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-
-        HAL_Delay(500);
+        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+        for (int i = 0; i < 4; i++) {
+            leds_set_pixel(0, get_pos_pixel(3, i+3), 4, 4, 0);
+            leds_set_pixel(1, get_pos_pixel(3, i+3), 4, 0, 4);
+            HAL_Delay(250);
+            leds_set_pixel(0, get_pos_pixel(3, i+3), 0, 0, 0);
+            leds_set_pixel(1, get_pos_pixel(3, i+3), 0, 0, 0);
+        }
     }
 }
 
