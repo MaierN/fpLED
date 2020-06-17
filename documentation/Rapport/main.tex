@@ -1,0 +1,143 @@
+
+\documentclass{HEIAarticle}
+
+\title{Accélérateur de tour télécom}
+\subtitle{Rapport}
+\course{Travail de Bachelor}
+\date{2019 - 2020}
+
+\usepackage{pgfgantt}
+\usepackage[T1]{fontenc}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{helvet}
+\usepackage{csquotes}
+\usepackage{nameref}
+\usepackage[lined,boxed]{algorithm2e}
+\usepackage{hyperref}
+\usepackage[toc]{glossaries}
+\usepackage[bottom]{footmisc}
+
+\newcommand{\ttt}[1]{{\texttt{#1}}}
+
+\SetAlCapSkip{1em}
+\setlength{\algomargin}{2em}
+\SetAlgoInsideSkip{medskip}
+\SetAlgoLined
+\DontPrintSemicolon
+
+\begin{document}
+\maketitlepage
+
+\makefullheader
+\maketableofcontent
+
+\chapter{Introduction}
+
+Depuis plusieurs années, un projet dénommé "Tour télécom" est développé au sein de la filière Informatique et
+Télécommunications. L'objectif de ce projet est de créer et utiliser une maquette de tour interactive afin de faire la promotion de l'informatique et des systèmes de communication auprès du public lors des manifestations telles que les portes ouvertes.
+
+La tour télécom comporte une matrice de LEDs flexible permettant d'afficher du texte et des animations. C'est
+sur cet aspect de la tour que ce projet porte.
+
+Ces matrices sont composées de contrôleurs ws281x. Chacun de ces contrôleurs gère une LED RGB. Ces
+contrôleurs sont conçus pour fonctionner avec autant de LEDs que nécessaire : ils sont organisés en chaîne. Pour
+ajouter une LED, il suffirait d'ajouter un contrôleur ws281x à la chaîne. Cette organisation en cascade offre une
+grande flexibilité, tout en permettant d'adresser chaque LED individuellement. Pour ce faire, un microcontrôleur
+doit envoyer les valeurs des couleurs de chaque LED (24 bits par LED RGB) au premier contrôleur ws281x de la
+chaîne. Chacun des contrôleurs lit et affiche la première valeur qu'il reçoit, et transmet toutes les autres au
+suivant. Cela permet de donner la couleur désirée à chacune des LEDs. Notre microcontrôleur doit ensuite
+envoyer un signal particulier ("reset code"), qui indique à chaque contrôleur ws281x qu'il devra à nouveau
+prendre une valeur, dans le but d'afficher l'image suivante.
+
+Ce système simple et extensible demande toutefois un timing très précis, c'est pourquoi un système temps réel
+est nécessaire pour contrôler les matrices de LEDs.
+
+\section{Acteurs}
+
+Ce projet est suivi par les personnes suivantes :
+\vspace{0.5em}
+\begin{itemize}
+    \item Jacques Supcik, \textit{Superviseur}
+    \item Michael Mäder, \textit{Superviseur}
+    \item Frédéric Mauron, \textit{Expert}
+    \item Nicolas Maier, \textit{Étudiant}
+\end{itemize}
+
+\section{Contexte}
+
+TODO
+
+\section{Situation avant le projet}
+
+TODO
+
+\section{Buts du projet}
+
+TODO
+
+\subsection{Objectifs du projet}
+
+TODO
+
+\subsection{Contraintes}
+
+TODO
+
+\section{Méthode de travail}
+
+TODO
+
+\subsection{Cahier des charges}
+
+TODO
+
+\subsection{Planification initiale}
+\label{planification}
+
+TODO
+
+\section{Structure du rapport}
+
+TODO
+
+\begin{itemize}
+    \item \textbf{Introduction}
+
+    ...
+    TODO
+\end{itemize}
+
+\input{analyse.tex}
+
+\chapter{Conclusion}
+
+TODO
+
+\section{Comparaison avec les objectifs}
+\label{conclusioncomparaisonobjectifs}
+
+TODO
+
+\section{Rétrospective sur la planification initiale}
+\label{conclusionplanification}
+
+TODO
+
+\section{Conclusion personnelle}
+
+TODO
+
+\chapter{Déclaration d'honneur}
+
+TODO
+
+
+%%\section{Glossaire}
+%\subfile{glossaire.tex}
+%\printglossary
+
+%\subfile{bibliography.tex}
+
+%\subfile{annexes/annexes.tex}
+
+\end{document}
