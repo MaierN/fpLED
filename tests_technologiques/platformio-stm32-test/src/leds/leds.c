@@ -12,7 +12,7 @@
 #define LED_PORT GPIOA
 #define LED_PORT_ENABLE __HAL_RCC_GPIOA_CLK_ENABLE
 
-#define LED_N 16*5    // number of led on each pin
+#define LED_N 64     // number of led on each pin
 #define LED_BYTE_N 3 // number of byte in each led
 
 #define TIM_2_PERIOD (SystemCoreClock / 800000) // 1250 [ns] period = 1/800000 [s]
