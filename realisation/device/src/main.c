@@ -10,6 +10,7 @@ void gpio_init();
 
 int main() {
     HAL_Init();
+    HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 
     system_clock_init();
     gpio_init();
@@ -23,10 +24,10 @@ int main() {
         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
         led_bit_buffer[a] = 0xff;
-        led_bit_buffer[++a] = 0x0;
-        a %= 8*3*256;
+        a = (a + 1) % (8*3*256);
+        led_bit_buffer[a] = 0x0;
 
-        HAL_Delay(50);
+        HAL_Delay(1);
     }
 }
 
