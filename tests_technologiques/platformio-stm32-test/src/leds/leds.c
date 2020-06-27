@@ -12,7 +12,7 @@
 #define LED_PORT GPIOA
 #define LED_PORT_ENABLE __HAL_RCC_GPIOA_CLK_ENABLE
 
-#define LED_N 64     // number of led on each pin
+#define LED_N 256    // number of led on each pin
 #define LED_BYTE_N 3 // number of byte in each led
 
 #define TIM_2_PERIOD (SystemCoreClock / 800000) // 1250 [ns] period = 1/800000 [s]
@@ -29,7 +29,7 @@ DMA_HandleTypeDef dma_down_1;
 
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4};
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
-uint8_t led_bit_buffer[8 * LED_BYTE_N * LED_N];
+volatile uint8_t led_bit_buffer[8 * LED_BYTE_N * LED_N];
 
 uint32_t reset_counter = 0;
 
@@ -110,13 +110,13 @@ static void leds_gpio_init() {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     LED_PORT_ENABLE();
 
-    uint8_t all_pins = 0x0;
+    uint8_t all_enabled_pins = 0x0;
     for (size_t i = 0; i < ARRAY_SIZE(strip_pins); i++) {
-        all_pins |= strip_pins[i];
+        all_enabled_pins |= strip_pins[i];
     }
-    HAL_GPIO_WritePin(LED_PORT, all_pins, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(LED_PORT, all_enabled_pins, GPIO_PIN_RESET);
 
-    GPIO_InitStruct.Pin = all_pins;
+    GPIO_InitStruct.Pin = all_enabled_pins;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -231,6 +231,7 @@ void leds_init() {
     for (size_t i = 0; i < ARRAY_SIZE(led_bit_buffer); i++) {
         led_bit_buffer[i] = 0xff;
     }
+    led_bit_buffer[0] = 0x0;
 
     leds_gpio_init();
     HAL_Delay(1000);
