@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 #define STORAGE_LUN_NBR 1
-#define STORAGE_BLK_NBR (4+12)
-#define STORAGE_BLK_SIZ 512
+#define STORAGE_BLK_NBR (4+1+6)
+#define STORAGE_BLK_SIZ 1024
 
 extern uint8_t usb_filesystem_metadata[];
 
