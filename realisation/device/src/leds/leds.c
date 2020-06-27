@@ -30,36 +30,11 @@ DMA_HandleTypeDef dma_down_1;
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4};
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 volatile uint8_t led_bit_buffer[8 * LED_BYTE_N * LED_N];
-volatile uint8_t test_var = 0;
 
-uint32_t reset_counter = 0;
+volatile uint32_t reset_counter = 0;
 
-static void send() {
-    // clear all DMA flags
-    __HAL_DMA_CLEAR_FLAG(&dma_up, DMA_FLAG_TC2 | DMA_FLAG_HT2 | DMA_FLAG_TE2);
-    __HAL_DMA_CLEAR_FLAG(&dma_down_0, DMA_FLAG_TC5 | DMA_FLAG_HT5 | DMA_FLAG_TE5);
-    __HAL_DMA_CLEAR_FLAG(&dma_down_1, DMA_FLAG_TC7 | DMA_FLAG_HT7 | DMA_FLAG_TE7);
-
-    // configure the number of bytes to be transferred by the DMA controller
-    dma_up.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
-    dma_down_0.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
-    dma_down_1.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
-
-    // clear all TIM2 flags
-    __HAL_TIM_CLEAR_FLAG(&tim_2, TIM_FLAG_UPDATE | TIM_FLAG_CC1 | TIM_FLAG_CC2 | TIM_FLAG_CC3 | TIM_FLAG_CC4);
-
-    __HAL_DMA_ENABLE(&dma_up);
-    __HAL_DMA_ENABLE(&dma_down_0);
-    __HAL_DMA_ENABLE(&dma_down_1);
-
-    __HAL_TIM_ENABLE_DMA(&tim_2, TIM_DMA_UPDATE);
-    __HAL_TIM_ENABLE_DMA(&tim_2, TIM_DMA_CC1);
-    __HAL_TIM_ENABLE_DMA(&tim_2, TIM_DMA_CC2);
-
-    TIM2->CNT = TIM_2_PERIOD - 1;
-
-    __HAL_TIM_ENABLE(&tim_2);
-}
+volatile uint8_t image_shown = 0;
+volatile uint8_t image_to_show = 0;
 
 static void dma_transfer_complete_handler(DMA_HandleTypeDef *dma_handle) {
     // disable DMA transfer
@@ -92,10 +67,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         // disable TIM2 update interrupts
         __HAL_TIM_DISABLE_IT(&tim_2, TIM_IT_UPDATE);
 
-        test_var++;
-
-        // todo test
-        send();
+        image_shown++;
     }
 }
 
@@ -218,6 +190,37 @@ void leds_init() {
 
     leds_dma_init();
     leds_timer_init();
+}
 
-    send();
+void leds_send() {
+    image_to_show++;
+
+    // clear all DMA flags
+    __HAL_DMA_CLEAR_FLAG(&dma_up, DMA_FLAG_TC2 | DMA_FLAG_HT2 | DMA_FLAG_TE2);
+    __HAL_DMA_CLEAR_FLAG(&dma_down_0, DMA_FLAG_TC5 | DMA_FLAG_HT5 | DMA_FLAG_TE5);
+    __HAL_DMA_CLEAR_FLAG(&dma_down_1, DMA_FLAG_TC7 | DMA_FLAG_HT7 | DMA_FLAG_TE7);
+
+    // configure the number of bytes to be transferred by the DMA controller
+    dma_up.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
+    dma_down_0.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
+    dma_down_1.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
+
+    // clear all TIM2 flags
+    __HAL_TIM_CLEAR_FLAG(&tim_2, TIM_FLAG_UPDATE | TIM_FLAG_CC1 | TIM_FLAG_CC2 | TIM_FLAG_CC3 | TIM_FLAG_CC4);
+
+    __HAL_DMA_ENABLE(&dma_up);
+    __HAL_DMA_ENABLE(&dma_down_0);
+    __HAL_DMA_ENABLE(&dma_down_1);
+
+    __HAL_TIM_ENABLE_DMA(&tim_2, TIM_DMA_UPDATE);
+    __HAL_TIM_ENABLE_DMA(&tim_2, TIM_DMA_CC1);
+    __HAL_TIM_ENABLE_DMA(&tim_2, TIM_DMA_CC2);
+
+    TIM2->CNT = TIM_2_PERIOD - 1;
+
+    __HAL_TIM_ENABLE(&tim_2);
+}
+
+void leds_wait_sent() {
+    while (image_shown != image_to_show) {}
 }

@@ -251,18 +251,18 @@ void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
     }
 }
 
-static uint8_t test_byte = 0x0;
+static uint8_t last_write_indicator = 0x0;
 void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
     if (block_address < 4) {
         memcpy((void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), buffer, STORAGE_BLK_SIZ * block_count);
     } else if (block_address == 4) {
-        if (buffer[0] != test_byte) {
-            // wrote first byte, sending image
-            test_byte = buffer[0];
+        if (buffer[0] != last_write_indicator) {
+            // wrote indicator byte, sending image
+            last_write_indicator = buffer[0];
             HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 1, 0);
-            uint8_t test_tick = test_var;
-            while (test_tick == test_var) {}
+            leds_wait_sent();
             HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+            leds_send();
         }
     } else {
         shift_and_copy(led_bit_buffer + 2*STORAGE_BLK_SIZ*(block_address - 5), buffer, STORAGE_BLK_SIZ * block_count);
