@@ -244,15 +244,27 @@ void usb_init() {
 void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
     if (block_address < 4) {
         memcpy(buffer, (void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), STORAGE_BLK_SIZ * block_count);
+    } else if (block_address == 4) {
+        memset(buffer, 0x00, STORAGE_BLK_SIZ);
     } else {
-        copy_and_shift(buffer, led_bit_buffer + 2*STORAGE_BLK_SIZ*(block_address - 4), STORAGE_BLK_SIZ * block_count);
+        copy_and_shift(buffer, led_bit_buffer + 2*STORAGE_BLK_SIZ*(block_address - 5), STORAGE_BLK_SIZ * block_count);
     }
 }
 
+static uint8_t test_byte = 0x0;
 void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
     if (block_address < 4) {
         memcpy((void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), buffer, STORAGE_BLK_SIZ * block_count);
+    } else if (block_address == 4) {
+        if (buffer[0] != test_byte) {
+            // wrote first byte, sending image
+            test_byte = buffer[0];
+            HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 1, 0);
+            uint8_t test_tick = test_var;
+            while (test_tick == test_var) {}
+            HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+        }
     } else {
-        shift_and_copy(led_bit_buffer + 2*STORAGE_BLK_SIZ*(block_address - 4), buffer, STORAGE_BLK_SIZ * block_count);
+        shift_and_copy(led_bit_buffer + 2*STORAGE_BLK_SIZ*(block_address - 5), buffer, STORAGE_BLK_SIZ * block_count);
     }
 }

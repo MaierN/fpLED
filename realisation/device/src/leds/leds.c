@@ -30,6 +30,7 @@ DMA_HandleTypeDef dma_down_1;
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4};
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 volatile uint8_t led_bit_buffer[8 * LED_BYTE_N * LED_N];
+volatile uint8_t test_var = 0;
 
 uint32_t reset_counter = 0;
 
@@ -90,6 +91,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
         // disable TIM2 update interrupts
         __HAL_TIM_DISABLE_IT(&tim_2, TIM_IT_UPDATE);
+
+        test_var++;
 
         // todo test
         send();

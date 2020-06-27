@@ -11,6 +11,7 @@ void gpio_init();
 int main() {
     HAL_Init();
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+    HAL_NVIC_SetPriority(SysTick_IRQn, 2, 0);
 
     system_clock_init();
     gpio_init();
