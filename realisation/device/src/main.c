@@ -8,10 +8,6 @@
 void system_clock_init();
 void gpio_init();
 
-size_t get_pos_pixel(uint32_t x, uint32_t y) {
-    return 8 * y + (y % 2 == 0 ? x : 7 - x);
-}
-
 int main() {
     HAL_Init();
 
@@ -21,10 +17,16 @@ int main() {
     leds_init();
     usb_init();
 
+    int a = 0;
+
     while (1) {
         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
-        HAL_Delay(1000);
+        led_bit_buffer[a] = 0xff;
+        led_bit_buffer[++a] = 0x0;
+        a %= 8*3*256;
+
+        HAL_Delay(50);
     }
 }
 

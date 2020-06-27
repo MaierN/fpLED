@@ -31,18 +31,34 @@ uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 volatile uint8_t led_bit_buffer[8 * LED_BYTE_N * LED_N];
 
+#define TEST_A 4
+volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * TEST_A];
+volatile size_t led_dma_count = 0;
+
 uint32_t reset_counter = 0;
 
+static void prepare_dma_buffer_half() {
+    size_t a = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * TEST_A;
+    for (size_t i = 0; i < 8 * LED_BYTE_N * TEST_A; i++) {
+        led_dma_buffer[a + i] = led_bit_buffer[i + led_dma_count * 8 * LED_BYTE_N * TEST_A];
+    }
+    led_dma_count++;
+}
+
 static void send() {
+    led_dma_count = 0;
+    prepare_dma_buffer_half();
+    prepare_dma_buffer_half();
+
     // clear all DMA flags
     __HAL_DMA_CLEAR_FLAG(&dma_up, DMA_FLAG_TC2 | DMA_FLAG_HT2 | DMA_FLAG_TE2);
     __HAL_DMA_CLEAR_FLAG(&dma_down_0, DMA_FLAG_TC5 | DMA_FLAG_HT5 | DMA_FLAG_TE5);
     __HAL_DMA_CLEAR_FLAG(&dma_down_1, DMA_FLAG_TC7 | DMA_FLAG_HT7 | DMA_FLAG_TE7);
 
     // configure the number of bytes to be transferred by the DMA controller
-    dma_up.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
-    dma_down_0.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
-    dma_down_1.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
+    dma_up.Instance->CNDTR = ARRAY_SIZE(led_dma_buffer);
+    dma_down_0.Instance->CNDTR = ARRAY_SIZE(led_dma_buffer);
+    dma_down_1.Instance->CNDTR = ARRAY_SIZE(led_dma_buffer);
 
     // clear all TIM2 flags
     __HAL_TIM_CLEAR_FLAG(&tim_2, TIM_FLAG_UPDATE | TIM_FLAG_CC1 | TIM_FLAG_CC2 | TIM_FLAG_CC3 | TIM_FLAG_CC4);
@@ -60,22 +76,32 @@ static void send() {
     __HAL_TIM_ENABLE(&tim_2);
 }
 
+static void dma_transfer_half_complete_handler(DMA_HandleTypeDef *dma_handle) {
+    if (led_dma_count < LED_N/TEST_A) {
+        prepare_dma_buffer_half();
+    }
+}
+
 static void dma_transfer_complete_handler(DMA_HandleTypeDef *dma_handle) {
-    // disable DMA transfer
-    __HAL_DMA_DISABLE(&dma_up);
-    __HAL_DMA_DISABLE(&dma_down_0);
-    __HAL_DMA_DISABLE(&dma_down_1);
+    if (led_dma_count < LED_N/TEST_A) {
+        prepare_dma_buffer_half();
+    } else {
+        // disable DMA transfer
+        __HAL_DMA_DISABLE(&dma_up);
+        __HAL_DMA_DISABLE(&dma_down_0);
+        __HAL_DMA_DISABLE(&dma_down_1);
 
-    // disable DMA requests of TIM2
-    __HAL_TIM_DISABLE_DMA(&tim_2, TIM_DMA_UPDATE);
-    __HAL_TIM_DISABLE_DMA(&tim_2, TIM_DMA_CC1);
-    __HAL_TIM_DISABLE_DMA(&tim_2, TIM_DMA_CC2);
+        // disable DMA requests of TIM2
+        __HAL_TIM_DISABLE_DMA(&tim_2, TIM_DMA_UPDATE);
+        __HAL_TIM_DISABLE_DMA(&tim_2, TIM_DMA_CC1);
+        __HAL_TIM_DISABLE_DMA(&tim_2, TIM_DMA_CC2);
 
-    // enable TIM2 update interrupts (will be used to time the RST signal > 50 us)
-    __HAL_TIM_ENABLE_IT(&tim_2, TIM_IT_UPDATE);
+        // enable TIM2 update interrupts (will be used to time the RST signal > 50 us)
+        __HAL_TIM_ENABLE_IT(&tim_2, TIM_IT_UPDATE);
 
-    // set pin to low, for RST signal
-    LED_PORT->BRR = all_pins[0];
+        // set pin to low, for RST signal
+        LED_PORT->BRR = all_pins[0];
+    }
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
@@ -137,7 +163,7 @@ static void leds_dma_init() {
     dma_up.Init.Priority = DMA_PRIORITY_LOW;
 
     HAL_DMA_Init(&dma_up);
-    HAL_DMA_Start(&dma_up, (uint32_t)all_pins, (uint32_t)&LED_PORT->BSRR, ARRAY_SIZE(led_bit_buffer));
+    HAL_DMA_Start(&dma_up, (uint32_t)all_pins, (uint32_t)&LED_PORT->BSRR, ARRAY_SIZE(led_dma_buffer));
 
     // TIM2 CC1: dma down (0 bit)
     dma_down_0.Instance = DMA1_Channel5;
@@ -150,7 +176,7 @@ static void leds_dma_init() {
     dma_down_0.Init.Priority = DMA_PRIORITY_LOW;
 
     HAL_DMA_Init(&dma_down_0);
-    HAL_DMA_Start(&dma_down_0, (uint32_t)led_bit_buffer, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_bit_buffer));
+    HAL_DMA_Start(&dma_down_0, (uint32_t)led_dma_buffer, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_dma_buffer));
 
     // TIM2 CC2: dma down (1 bit)
     dma_down_1.Instance = DMA1_Channel7;
@@ -164,9 +190,10 @@ static void leds_dma_init() {
 
     HAL_DMA_Init(&dma_down_1);
     dma_down_1.XferCpltCallback = dma_transfer_complete_handler;
-    HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 0, 0);
+    dma_down_1.XferHalfCpltCallback = dma_transfer_half_complete_handler;
+    HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 1, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
-    HAL_DMA_Start_IT(&dma_down_1, (uint32_t)all_pins, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_bit_buffer));
+    HAL_DMA_Start_IT(&dma_down_1, (uint32_t)all_pins, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_dma_buffer));
 }
 
 static void leds_timer_init() {
@@ -202,36 +229,16 @@ static void leds_timer_init() {
     HAL_TIM_PWM_Start(&tim_2, TIM_CHANNEL_2);
 }
 
-void leds_set_pixel(size_t strip, size_t pixel, uint8_t r, uint8_t g, uint8_t b) {
-    size_t index = pixel * LED_BYTE_N * 8;
-
-    for (int i = 0; i < 8; i++) {
-        uint8_t pin = strip_pins[strip];
-
-        // put 1 to send 0 bit, put 0 to send 1 bit
-
-        if ((g >> (7 - i)) & 0x1)
-            led_bit_buffer[index + i + 0 * 8] &= ~pin;
-        else
-            led_bit_buffer[index + i + 0 * 8] |= pin;
-
-        if ((r >> (7 - i)) & 0x1)
-            led_bit_buffer[index + i + 1 * 8] &= ~pin;
-        else
-            led_bit_buffer[index + i + 1 * 8] |= pin;
-
-        if ((b >> (7 - i)) & 0x1)
-            led_bit_buffer[index + i + 2 * 8] &= ~pin;
-        else
-            led_bit_buffer[index + i + 2 * 8] |= pin;
-    }
-}
-
 void leds_init() {
+    for (size_t i = 0; i < ARRAY_SIZE(led_dma_buffer); i++) {
+        led_dma_buffer[i] = 0xff;
+    }
     for (size_t i = 0; i < ARRAY_SIZE(led_bit_buffer); i++) {
         led_bit_buffer[i] = 0xff;
     }
-    led_bit_buffer[0] = 0x0;
+    for (size_t i = 0; i < 8; i++) {
+        led_bit_buffer[i] = 0x0;
+    }
 
     leds_gpio_init();
     HAL_Delay(1000);
