@@ -1,7 +1,7 @@
 
 import os, time
 
-SIZE = 3072 #6144
+SIZE = 6144
 
 buffer = bytearray(SIZE)
 
@@ -33,13 +33,13 @@ write_indicator = bytearray(1)
 write_indicator[0] = 0
 def update(buf):
     with open('../test/testfile.txt', 'r+b') as f:
-        f.seek(512)
+        f.seek(1024)
         f.write(buf)
         os.sync()
-        f.seek(0)
-        write_indicator[0] = (write_indicator[0] + 1) % 256
-        f.write(write_indicator)
-        os.sync()
+        #f.seek(0)
+        #write_indicator[0] = (write_indicator[0] + 1) % 256
+        #f.write(write_indicator)
+        #os.sync()
 
 pos = 5
 count = 0
@@ -81,9 +81,9 @@ while True:
 
 test = 0
 while True:
-    if test % 3 == 0:
+    if test % 10 == 0:
         buffer[pos] = 255
-        pos = (pos+4) % (SIZE)
+        pos = (pos+8) % (SIZE)
         buffer[pos] = 0
     if test % 2 == 0:
         buffer[5] = 0
