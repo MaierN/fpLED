@@ -232,7 +232,11 @@ static void prepare_showing_buffer() {
         uint8_t mask = 1 << strip;
 
         for (size_t i = 0; i < LED_N * LED_BYTE_N; i++) {
-            uint8_t byte = usb_bit_buffer[strip * LED_N * LED_BYTE_N + i];
+            uint8_t byte = usb_bit_buffer[(strip * LED_N * LED_BYTE_N + i)/2];
+            if (i % 2 == 1) {
+                byte <<= 4;
+            }
+            byte &= 0xf0;
 
             for (size_t j = 0; j < 8; j++) {
                 size_t index = 8 * i + j;
@@ -276,6 +280,7 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
                 HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
 
                 prepare_showing_buffer();
+
                 leds_send();
             }
         } else {
