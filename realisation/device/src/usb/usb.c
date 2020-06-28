@@ -225,10 +225,22 @@ volatile uint8_t usb_bit_buffer[12 * 512];
 
 static void prepare_showing_buffer() {
     volatile uint8_t* leds_buffer = leds_get_buffer();
-    for (size_t i = 0; i < 8 * LED_BYTE_N * LED_N; i++) {
-        uint8_t base = 0xff;
-        uint8_t byte = (usb_bit_buffer[i/4] & (0b00000011 << (4 - i % 4))) << (i % 4);
-        leds_buffer[i] = 0xff ^ !(base & byte);
+
+    memset((void*)leds_buffer, 0xff, 8 * LED_BYTE_N * LED_N);
+
+    for (size_t strip = 0; strip < 8; strip++) {
+        uint8_t mask = 1 << strip;
+
+        for (size_t i = 0; i < LED_N * LED_BYTE_N; i++) {
+            uint8_t byte = usb_bit_buffer[strip * LED_N * LED_BYTE_N + i];
+
+            for (size_t j = 0; j < 8; j++) {
+                size_t index = 8 * i + j;
+                size_t curr_bit = byte & (1 << j);
+
+                if (curr_bit) leds_buffer[index] &= ~mask;
+            }
+        }
     }
 }
 

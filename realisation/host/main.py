@@ -1,33 +1,17 @@
 
 import os, time
 
-SIZE = int(6*1024/4)
+STRIP_N = 8
+LED_N = 256
+SIZE = STRIP_N * LED_N * 3
+
+if SIZE > 6*1024:
+    print("WONG SIZE")
 
 buffer = bytearray(SIZE)
 
 for i in range(SIZE):
-    buffer[i] = 255
-
-buffer_g = bytearray(SIZE)
-for i in range(SIZE):
-    if i % 24 == 4:
-        buffer_g[i] = 0
-    else:
-        buffer_g[i] = 255
-
-buffer_r = bytearray(SIZE)
-for i in range(SIZE):
-    if i % 24 == 12:
-        buffer_r[i] = 0
-    else:
-        buffer_r[i] = 255
-
-buffer_b = bytearray(SIZE)
-for i in range(SIZE):
-    if i % 24 == 20:
-        buffer_b[i] = 0
-    else:
-        buffer_b[i] = 255
+    buffer[i] = 0
 
 write_indicator = bytearray(1)
 write_indicator[0] = 0
@@ -42,61 +26,34 @@ def update(buf):
         f.write(write_indicator)
     os.sync()
 
+def set_pixel(strip, pixel, r, g, b):
+    buffer[(strip * LED_N + pixel) * 3 + 0] = g
+    buffer[(strip * LED_N + pixel) * 3 + 1] = r
+    buffer[(strip * LED_N + pixel) * 3 + 2] = b
+
 test = 0
-pos = 1
+pos = -1
 count = 0
 max_count = 100
 t0 = time.time()
 
-'''
 while True:
-    print('g')
-    update(buffer_g)
-    time.sleep(.5)
-    print('r')
-    update(buffer_r)
-    time.sleep(.5)
-    print('b')
-    update(buffer_b)
-    time.sleep(.5)
-    print('none')
-    update(buffer)
-    time.sleep(.5)
-    count += 1
-    if count % max_count == 0:
-        print(count)
-        t1 = time.time()
-        print(4*max_count/(t1 - t0))
-        t0 = t1
-'''
+    if test % 5 == 0:
+        if pos >= 0:
+            set_pixel(0, pos, 0, 0, 0)
+        pos = (pos+1) % LED_N
+        set_pixel(0, pos, 0, 255, 0)
 
-'''
-while True:
-    buffer[pos] = 255
-    pos = (pos+1) % SIZE
-    buffer[pos] = 0
-    update(buffer)
-    count += 1
-    if count % max_count == 0:
-        print(count)
-        t1 = time.time()
-        print(max_count/(t1 - t0))
-        t0 = t1
-    #time.sleep(0.01)
-'''
-
-while True:
-    if test % 1 == 0:
-        buffer[pos] = 255
-        pos = (pos+2) % (SIZE)
-        buffer[pos] = 0
     if test % 2 == 0:
-        buffer[13] = 0
+        set_pixel(0, 0, 1, 0, 0)
     else:
-        buffer[13] = 255
+        set_pixel(0, 0, 0, 0, 0)
     test += 1
+
     update(buffer)
+
     count += 1
+
     if count % max_count == 0:
         t1 = time.time()
         fps = max_count/(t1 - t0)
