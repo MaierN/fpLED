@@ -1,7 +1,7 @@
 
 import os, time
 
-SIZE = 6*1024
+SIZE = int(6*1024/4)
 
 buffer = bytearray(SIZE)
 
@@ -43,12 +43,12 @@ def update(buf):
     os.sync()
 
 test = 0
-pos = 20
+pos = 1
 count = 0
 max_count = 100
 t0 = time.time()
 
-
+'''
 while True:
     print('g')
     update(buffer_g)
@@ -68,7 +68,7 @@ while True:
         t1 = time.time()
         print(4*max_count/(t1 - t0))
         t0 = t1
-
+'''
 
 '''
 while True:
@@ -86,9 +86,9 @@ while True:
 '''
 
 while True:
-    if test % 30 == 0:
+    if test % 1 == 0:
         buffer[pos] = 255
-        pos = (pos+8) % (SIZE)
+        pos = (pos+2) % (SIZE)
         buffer[pos] = 0
     if test % 2 == 0:
         buffer[13] = 0

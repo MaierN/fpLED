@@ -221,7 +221,16 @@ uint8_t usb_filesystem_metadata[] = {
     0x0, 0x0,
 };
 
-volatile uint8_t usb_bit_buffer[8 * LED_BYTE_N * LED_N];
+volatile uint8_t usb_bit_buffer[12 * 512];
+
+static void prepare_showing_buffer() {
+    volatile uint8_t* leds_buffer = leds_get_buffer();
+    for (size_t i = 0; i < 8 * LED_BYTE_N * LED_N; i++) {
+        uint8_t base = 0xff;
+        uint8_t byte = (usb_bit_buffer[i/4] & (0b00000011 << (4 - i % 4))) << (i % 4);
+        leds_buffer[i] = 0xff ^ !(base & byte);
+    }
+}
 
 void usb_init() {
     memset((void*)usb_bit_buffer, 0xff, ARRAY_SIZE(usb_bit_buffer));
@@ -254,7 +263,7 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
                 leds_wait_sent();
                 HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
 
-                memcpy((void*)leds_get_buffer(), (void*)usb_bit_buffer, ARRAY_SIZE(usb_bit_buffer));
+                prepare_showing_buffer();
                 leds_send();
             }
         } else {
