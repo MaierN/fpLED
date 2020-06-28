@@ -236,7 +236,7 @@ static void prepare_showing_buffer() {
 
             for (size_t j = 0; j < 8; j++) {
                 size_t index = 8 * i + j;
-                size_t curr_bit = byte & (1 << j);
+                size_t curr_bit = byte & (1 << (7-j));
 
                 if (curr_bit) leds_buffer[index] &= ~mask;
             }

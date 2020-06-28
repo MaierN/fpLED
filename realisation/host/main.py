@@ -42,10 +42,10 @@ while True:
         if pos >= 0:
             set_pixel(0, pos, 0, 0, 0)
         pos = (pos+1) % LED_N
-        set_pixel(0, pos, 0, 255, 0)
+        set_pixel(0, pos, 0, 5, 0)
 
     if test % 2 == 0:
-        set_pixel(0, 0, 1, 0, 0)
+        set_pixel(0, 0, 5, 0, 0)
     else:
         set_pixel(0, 0, 0, 0, 0)
     test += 1
