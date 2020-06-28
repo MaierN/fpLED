@@ -1,7 +1,7 @@
 
 import os, time
 
-SIZE = 6144
+SIZE = 6*1024
 
 buffer = bytearray(SIZE)
 
@@ -81,14 +81,14 @@ while True:
 
 test = 0
 while True:
-    if test % 10 == 0:
+    if test % 1 == 0:
         buffer[pos] = 255
-        pos = (pos+8) % (SIZE)
+        pos = (pos+24) % (SIZE)
         buffer[pos] = 0
     if test % 2 == 0:
-        buffer[5] = 0
+        buffer[13] = 0
     else:
-        buffer[5] = 255
+        buffer[13] = 255
     test += 1
     update(buffer)
     count += 1
