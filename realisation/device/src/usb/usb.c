@@ -221,7 +221,11 @@ uint8_t usb_filesystem_metadata[] = {
     0x0, 0x0,
 };
 
+volatile uint8_t usb_bit_buffer[8 * LED_BYTE_N * LED_N];
+
 void usb_init() {
+    memset((void*)usb_bit_buffer, 0xff, ARRAY_SIZE(usb_bit_buffer));
+
     MX_USB_DEVICE_Init();
 }
 
@@ -245,13 +249,16 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
             if (buffer[0] != last_write_indicator) {
                 // wrote indicator byte, sending image
                 last_write_indicator = buffer[0];
+
                 HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 1, 0);
                 leds_wait_sent();
                 HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+
+                memcpy((void*)leds_get_buffer(), (void*)usb_bit_buffer, ARRAY_SIZE(usb_bit_buffer));
                 leds_send();
             }
         } else {
-            memcpy((void*)(leds_get_current_buffer() + (STORAGE_BLK_SIZ * (block_address - 5))), buffer + i*STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
+            memcpy((void*)(usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - 5))), buffer + i*STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
         }
         block_address++;
     }

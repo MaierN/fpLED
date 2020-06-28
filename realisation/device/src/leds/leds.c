@@ -7,17 +7,10 @@
 
 #include "exception_handler/exception_handler.h"
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-
 #define LED_PORT GPIOA
 #define LED_PORT_ENABLE __HAL_RCC_GPIOA_CLK_ENABLE
 
-#define LED_N 256    // number of led on each pin
-#define LED_BYTE_N 3 // number of byte in each led
-
 #define TIM_2_PERIOD (SystemCoreClock / 800000) // 1250 [ns] period = 1/800000 [s]
-
-#define LED_RESET_PERIOD_COUNT 50
 
 TIM_HandleTypeDef tim_2;
 TIM_OC_InitTypeDef tim_2_oc_0;
@@ -30,9 +23,7 @@ DMA_HandleTypeDef dma_down_1;
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4};
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 
-volatile uint8_t led_bit_buffer_1[8 * LED_BYTE_N * LED_N];
-volatile uint8_t led_bit_buffer_2[8 * LED_BYTE_N * LED_N];
-volatile bool current_buffer = false; // true if filling buffer_1 and showing buffer_2, false for the opposite
+volatile uint8_t led_bit_buffer[8 * LED_BYTE_N * LED_N];
 
 volatile uint32_t reset_counter = 0;
 
@@ -114,7 +105,7 @@ static void leds_dma_init() {
     dma_up.Init.Priority = DMA_PRIORITY_LOW;
 
     HAL_DMA_Init(&dma_up);
-    HAL_DMA_Start(&dma_up, (uint32_t)all_pins, (uint32_t)&LED_PORT->BSRR, ARRAY_SIZE(led_bit_buffer_1));
+    HAL_DMA_Start(&dma_up, (uint32_t)all_pins, (uint32_t)&LED_PORT->BSRR, ARRAY_SIZE(led_bit_buffer));
 
     // TIM2 CC1: dma down (0 bit)
     dma_down_0.Instance = DMA1_Channel5;
@@ -127,7 +118,7 @@ static void leds_dma_init() {
     dma_down_0.Init.Priority = DMA_PRIORITY_LOW;
 
     HAL_DMA_Init(&dma_down_0);
-    HAL_DMA_Start(&dma_down_0, (uint32_t)led_bit_buffer_1, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_bit_buffer_1));
+    HAL_DMA_Start(&dma_down_0, (uint32_t)led_bit_buffer, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_bit_buffer));
 
     // TIM2 CC2: dma down (1 bit)
     dma_down_1.Instance = DMA1_Channel7;
@@ -143,7 +134,7 @@ static void leds_dma_init() {
     dma_down_1.XferCpltCallback = dma_transfer_complete_handler;
     HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 0, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
-    HAL_DMA_Start_IT(&dma_down_1, (uint32_t)all_pins, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_bit_buffer_1));
+    HAL_DMA_Start_IT(&dma_down_1, (uint32_t)all_pins, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_bit_buffer));
 }
 
 static void leds_timer_init() {
@@ -180,18 +171,7 @@ static void leds_timer_init() {
 }
 
 void leds_init() {
-    for (size_t i = 0; i < ARRAY_SIZE(led_bit_buffer_1); i++) {
-        led_bit_buffer_1[i] = 0xff;
-    }
-    for (size_t i = 0; i < ARRAY_SIZE(led_bit_buffer_2); i++) {
-        led_bit_buffer_2[i] = 0xff;
-        if (i % 24 == 15) {
-            led_bit_buffer_2[i] = 0x0;
-        }
-    }
-    for (size_t i = 0; i < 8; i++) {
-        led_bit_buffer_1[i] = 0x0;
-    }
+    memset((void*)led_bit_buffer, 0xff, ARRAY_SIZE(led_bit_buffer));
 
     leds_gpio_init();
     HAL_Delay(1000);
@@ -208,14 +188,10 @@ void leds_send() {
     __HAL_DMA_CLEAR_FLAG(&dma_down_0, DMA_FLAG_TC5 | DMA_FLAG_HT5 | DMA_FLAG_TE5);
     __HAL_DMA_CLEAR_FLAG(&dma_down_1, DMA_FLAG_TC7 | DMA_FLAG_HT7 | DMA_FLAG_TE7);
 
-    // swap buffer
-    current_buffer = !current_buffer;
-    dma_down_0.Instance->CMAR = (uint32_t)(current_buffer ? led_bit_buffer_2 : led_bit_buffer_1);
-
     // configure the number of bytes to be transferred by the DMA controller
-    dma_up.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer_1);
-    dma_down_0.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer_1);
-    dma_down_1.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer_1);
+    dma_up.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
+    dma_down_0.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
+    dma_down_1.Instance->CNDTR = ARRAY_SIZE(led_bit_buffer);
 
     // clear all TIM2 flags
     __HAL_TIM_CLEAR_FLAG(&tim_2, TIM_FLAG_UPDATE | TIM_FLAG_CC1 | TIM_FLAG_CC2 | TIM_FLAG_CC3 | TIM_FLAG_CC4);
@@ -233,8 +209,8 @@ void leds_send() {
     __HAL_TIM_ENABLE(&tim_2);
 }
 
-volatile uint8_t* leds_get_current_buffer() {
-    return current_buffer ? led_bit_buffer_1 : led_bit_buffer_2;
+volatile uint8_t* leds_get_buffer() {
+    return led_bit_buffer;
 }
 
 void leds_wait_sent() {
