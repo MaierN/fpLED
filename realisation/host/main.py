@@ -33,7 +33,7 @@ write_indicator = bytearray(1)
 write_indicator[0] = 0
 def update(buf):
     with open('../test/testfile.txt', 'r+b') as f:
-        f.seek(1024)
+        f.seek(512)
         f.write(buf)
         os.sync()
         f.seek(0)
