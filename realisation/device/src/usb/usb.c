@@ -434,7 +434,7 @@ void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
         if (block_address < 4) {
             memcpy(buffer, (void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), STORAGE_BLK_SIZ);
         } else {
-            //memset(buffer, 0x00, STORAGE_BLK_SIZ);
+            memset(buffer, 0x00, STORAGE_BLK_SIZ);
         }
         block_address++;
     }
@@ -455,7 +455,7 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
                 leds_send();
             }
         } else {
-            //memcpy((void*)(led_bit_buffer + (STORAGE_BLK_SIZ * (block_address - 5))), buffer, STORAGE_BLK_SIZ);
+            memcpy((void*)(led_bit_buffer + (STORAGE_BLK_SIZ * (block_address - 5))), buffer, STORAGE_BLK_SIZ);
         }
         block_address++;
     }

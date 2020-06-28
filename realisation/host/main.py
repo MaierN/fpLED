@@ -36,10 +36,10 @@ def update(buf):
         f.seek(1024)
         f.write(buf)
         os.sync()
-        #f.seek(0)
-        #write_indicator[0] = (write_indicator[0] + 1) % 256
-        #f.write(write_indicator)
-        #os.sync()
+        f.seek(0)
+        write_indicator[0] = (write_indicator[0] + 1) % 256
+        f.write(write_indicator)
+        os.sync()
 
 pos = 5
 count = 0
