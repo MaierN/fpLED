@@ -19,14 +19,14 @@ int main() {
     leds_init();
     usb_init();
 
-    int a = 0;
+    //int a = 0;
 
     while (1) {
         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
-        led_bit_buffer[a] = 0xff;
+        /*led_bit_buffer_1[a] = 0xff;
         a = (a + 1) % (8*3*256);
-        led_bit_buffer[a] = 0x0;
+        led_bit_buffer_1[a] = 0x0;*/
 
         HAL_Delay(1);
     }

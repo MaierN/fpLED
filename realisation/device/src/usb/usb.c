@@ -251,7 +251,7 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
                 leds_send();
             }
         } else {
-            memcpy((void*)(led_bit_buffer + (STORAGE_BLK_SIZ * (block_address - 5))), buffer + i*STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
+            memcpy((void*)(leds_get_current_buffer() + (STORAGE_BLK_SIZ * (block_address - 5))), buffer + i*STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
         }
         block_address++;
     }
