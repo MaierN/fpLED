@@ -7,7 +7,11 @@
 #include "stm32f1xx_hal.h"
 #include "usb_device.h"
 
-uint8_t usb_filesystem_metadata[] = {
+#define BITBANDING_BASE_ADDRESS 0x20000000
+#define BITBANDING_BITBAND_ADDRESS 0x22000000
+#define BITBANDING_GET_ADDRESS(var_address, bit_offset) ((volatile uint32_t *) (BITBANDING_BITBAND_ADDRESS + ((uint32_t)(var_address - BITBANDING_BASE_ADDRESS) << 5) + (bit_offset << 2)))
+
+const uint8_t usb_filesystem_metadata[] = {
     0xeb, 0x3c, 0x90, 0x4d, 0x54, 0x4f, 0x4f, 0x34, 0x30, 0x31,
     0x38, 0x0, 0x2, 0x1, 0x1, 0x0, 0x2, 0x10, 0x0, 0x11,
     0x0, 0xf0, 0x1, 0x0, 0x11, 0x0, 0x1, 0x0, 0x0, 0x0,
@@ -221,29 +225,25 @@ uint8_t usb_filesystem_metadata[] = {
     0x0, 0x0,
 };
 
-volatile uint8_t usb_bit_buffer[12 * 512];
+volatile uint8_t usb_bit_buffer[6 * 512];
 
 static void prepare_showing_buffer() {
     volatile uint8_t* leds_buffer = leds_get_buffer();
 
-    memset((void*)leds_buffer, 0xff, 8 * LED_BYTE_N * LED_N);
+    for (size_t strip = 0; strip < 8; strip++) {
 
-    for (size_t strip = 0; strip < 5; strip++) {
-        uint8_t mask = 1 << strip;
+        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(leds_buffer, strip);
+
+        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + strip * LED_N * LED_BYTE_N / 2;
 
         for (size_t i = 0; i < LED_N * LED_BYTE_N; i++) {
-            uint8_t byte = usb_bit_buffer[(strip * LED_N * LED_BYTE_N + i)/2];
-            if (i % 2 == 1) {
-                byte <<= 4;
-            }
-            byte &= 0xf0;
+            uint8_t byte = (~*(curr_usb_buffer + i/2)) << (4 * (i % 2));
 
-            for (size_t j = 0; j < 4; j++) {
-                size_t index = 8 * i + j;
-                size_t curr_bit = byte & (1 << (7-j));
-
-                if (curr_bit) leds_buffer[index] &= ~mask;
-            }
+            *bitband_addr = byte >> 7; bitband_addr += 8;
+            *bitband_addr = byte >> 6; bitband_addr += 8;
+            *bitband_addr = byte >> 5; bitband_addr += 8;
+            *bitband_addr = byte >> 4; bitband_addr += 8;
+            bitband_addr += 32;
         }
     }
 }
@@ -259,7 +259,8 @@ void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
         if (block_address < 4) {
             memcpy(buffer + i*STORAGE_BLK_SIZ, (void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), STORAGE_BLK_SIZ);
         } else {
-            memset(buffer, 0x00, STORAGE_BLK_SIZ);
+            // we won't read anything useful
+            //memset(buffer, 0x00, STORAGE_BLK_SIZ);
         }
         block_address++;
     }
@@ -269,7 +270,8 @@ static uint8_t last_write_indicator = 0x0;
 void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
     for (size_t i = 0; i < block_count; i++) {
         if (block_address < 4) {
-            memcpy((void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), buffer, STORAGE_BLK_SIZ);
+            // filesystem metadata is read-only (in falsh), to save sram space
+            //memcpy((void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), buffer, STORAGE_BLK_SIZ);
         } else if (block_address == 4) {
             if (buffer[0] != last_write_indicator) {
                 // wrote indicator byte, sending image

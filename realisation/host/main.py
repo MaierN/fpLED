@@ -1,7 +1,7 @@
 
 import os, time, math
 
-STRIP_N = 5
+STRIP_N = 8
 LED_N = 256
 SIZE = round(STRIP_N * LED_N * 3 / 2)
 
@@ -53,11 +53,13 @@ max_count = 100
 t0 = time.time()
 
 while True:
-    if test % 1 == 0:
+    if test % 30 == 0:
         if pos >= 0:
-            set_pixel(0, pos, 0, 0, 0)
-        pos = (pos+1) % LED_N
-        set_pixel(0, pos, 0, 16, 0)
+            for i in range(8):
+                set_pixel(0, pos*8+i, 0, 0, 0)
+        pos = (pos+1) % (LED_N/8)
+        for i in range(8):
+            set_pixel(0, pos*8+i, 0, 16, 0)
 
     if test % 2 == 0:
         set_pixel(0, 10, 16, 0, 0)
