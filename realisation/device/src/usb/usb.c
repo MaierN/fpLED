@@ -286,7 +286,9 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
                 leds_send();
             }
         } else {
+            HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 1, 0);
             memcpy((void*)(usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - 5))), buffer + i*STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
+            HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
         }
         block_address++;
     }

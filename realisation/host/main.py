@@ -62,9 +62,9 @@ while True:
             set_pixel(0, pos*8+i, 0, 16, 0)
 
     if test % 2 == 0:
-        set_pixel(0, 10, 16, 0, 0)
+        set_pixel(3, 10, 16, 0, 0)
     else:
-        set_pixel(0, 10, 0, 0, 0)
+        set_pixel(3, 10, 0, 0, 0)
     test += 1
 
     update(buffer)
