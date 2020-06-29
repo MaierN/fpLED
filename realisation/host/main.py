@@ -1,7 +1,7 @@
 
 import os, time, math
 
-STRIP_N = 8
+STRIP_N = 5
 LED_N = 256
 SIZE = round(STRIP_N * LED_N * 3 / 2)
 

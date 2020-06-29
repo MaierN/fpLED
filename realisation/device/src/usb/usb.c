@@ -228,7 +228,7 @@ static void prepare_showing_buffer() {
 
     memset((void*)leds_buffer, 0xff, 8 * LED_BYTE_N * LED_N);
 
-    for (size_t strip = 0; strip < 8; strip++) {
+    for (size_t strip = 0; strip < 5; strip++) {
         uint8_t mask = 1 << strip;
 
         for (size_t i = 0; i < LED_N * LED_BYTE_N; i++) {
@@ -238,7 +238,7 @@ static void prepare_showing_buffer() {
             }
             byte &= 0xf0;
 
-            for (size_t j = 0; j < 8; j++) {
+            for (size_t j = 0; j < 4; j++) {
                 size_t index = 8 * i + j;
                 size_t curr_bit = byte & (1 << (7-j));
 
