@@ -7,10 +7,6 @@
 #include "stm32f1xx_hal.h"
 #include "usb_device.h"
 
-#define BITBANDING_BASE_ADDRESS 0x20000000
-#define BITBANDING_BITBAND_ADDRESS 0x22000000
-#define BITBANDING_GET_ADDRESS(var_address, bit_offset) ((volatile uint32_t *) (BITBANDING_BITBAND_ADDRESS + ((uint32_t)(var_address - BITBANDING_BASE_ADDRESS) << 5) + (bit_offset << 2)))
-
 const uint8_t usb_filesystem_metadata[] = {
     0xeb, 0x3c, 0x90, 0x4d, 0x54, 0x4f, 0x4f, 0x34, 0x30, 0x31,
     0x38, 0x0, 0x2, 0x1, 0x1, 0x0, 0x2, 0x10, 0x0, 0x11,
@@ -225,32 +221,7 @@ const uint8_t usb_filesystem_metadata[] = {
     0x0, 0x0,
 };
 
-volatile uint8_t usb_bit_buffer[6 * 512];
-
-static void prepare_showing_buffer() {
-    volatile uint8_t* leds_buffer = leds_get_buffer();
-
-    for (size_t strip = 0; strip < 8; strip++) {
-
-        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(leds_buffer, strip);
-
-        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + strip * LED_N * LED_BYTE_N / 2;
-
-        for (size_t i = 0; i < LED_N * LED_BYTE_N; i++) {
-            uint8_t byte = (~*(curr_usb_buffer + i/2)) << (4 * (i % 2));
-
-            *bitband_addr = byte >> 7; bitband_addr += 8;
-            *bitband_addr = byte >> 6; bitband_addr += 8;
-            *bitband_addr = byte >> 5; bitband_addr += 8;
-            *bitband_addr = byte >> 4; bitband_addr += 8;
-            bitband_addr += 32;
-        }
-    }
-}
-
 void usb_init() {
-    memset((void*)usb_bit_buffer, 0xff, ARRAY_SIZE(usb_bit_buffer));
-
     MX_USB_DEVICE_Init();
 }
 
@@ -281,7 +252,7 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
                 leds_wait_sent();
                 HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
 
-                prepare_showing_buffer();
+                //prepare_showing_buffer();
 
                 leds_send();
             }

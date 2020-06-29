@@ -50,21 +50,39 @@ test = 0
 pos = -1
 count = 0
 max_count = 100
+STRIP = 5 # 5 ??
+STRIP_2 = 7
 t0 = time.time()
 
+'''
 while True:
-    if test % 30 == 0:
+    if pos >= 0:
+        set_pixel(0, pos, 0, 0, 0)
+    pos = (pos+1) % LED_N
+    set_pixel(0, pos, 0, 16, 0)
+    update(buffer)
+    time.sleep(1)
+    set_pixel(0, pos, 16, 0, 0)
+    update(buffer)
+    time.sleep(1)
+    set_pixel(0, pos, 0, 0, 16)
+    update(buffer)
+    time.sleep(1)
+'''
+
+while True:
+    if test % 1 == 0:
         if pos >= 0:
             for i in range(8):
-                set_pixel(0, pos*8+i, 0, 0, 0)
+                set_pixel(STRIP, pos*8+i, 0, 0, 0)
         pos = (pos+1) % (LED_N/8)
         for i in range(8):
-            set_pixel(0, pos*8+i, 0, 16, 0)
+            set_pixel(STRIP, pos*8+i, 0, 16, 0)
 
     if test % 2 == 0:
-        set_pixel(3, 10, 16, 0, 0)
+        set_pixel(STRIP_2, 10, 16, 0, 0)
     else:
-        set_pixel(3, 10, 0, 0, 0)
+        set_pixel(STRIP_2, 10, 0, 0, 0)
     test += 1
 
     update(buffer)

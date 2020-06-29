@@ -8,6 +8,10 @@
 
 #include "exception_handler/exception_handler.h"
 
+#define BITBANDING_BASE_ADDRESS 0x20000000
+#define BITBANDING_BITBAND_ADDRESS 0x22000000
+#define BITBANDING_GET_ADDRESS(var_address, bit_offset) ((volatile uint32_t *) (BITBANDING_BITBAND_ADDRESS + ((uint32_t)(var_address - BITBANDING_BASE_ADDRESS) << 5) + (bit_offset << 2)))
+
 #define LED_PORT GPIOA
 #define LED_PORT_ENABLE __HAL_RCC_GPIOA_CLK_ENABLE
 
@@ -24,9 +28,9 @@ DMA_HandleTypeDef dma_down_1;
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7};
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 
-volatile uint8_t led_bit_buffer[8 * LED_BYTE_N * LED_N];
+volatile uint8_t usb_bit_buffer[6 * 512];
 
-#define TEST_A 1
+#define TEST_A 2
 volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * TEST_A];
 volatile size_t led_dma_count = 0;
 
@@ -34,11 +38,45 @@ volatile uint32_t reset_counter = 0;
 
 volatile bool image_shown = true; // true if finished showing image
 
+
+/*static void prepare_showing_buffer() {
+    for (size_t strip = 0; strip < 8; strip++) {
+
+        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_bit_buffer, strip);
+
+        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + strip * LED_N * LED_BYTE_N / 2;
+
+        for (size_t i = 0; i < LED_N * LED_BYTE_N; i++) {
+            uint8_t byte = (~*(curr_usb_buffer + i/2)) << (4 * (i % 2));
+
+            *bitband_addr = byte >> 7; bitband_addr += 8;
+            *bitband_addr = byte >> 6; bitband_addr += 8;
+            *bitband_addr = byte >> 5; bitband_addr += 8;
+            *bitband_addr = byte >> 4; bitband_addr += 8;
+            bitband_addr += 32;
+        }
+    }
+}*/
+
 static void prepare_dma_buffer_half() {
     size_t a = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * TEST_A;
-    for (size_t i = 0; i < 8 * LED_BYTE_N * TEST_A; i++) {
-        led_dma_buffer[a + i] = led_bit_buffer[i + led_dma_count * 8 * LED_BYTE_N * TEST_A];
+
+    for (size_t strip = 0; strip < 8; strip++) {
+        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + a, strip);
+
+        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + led_dma_count * LED_BYTE_N  + strip * LED_N * LED_BYTE_N / 2;
+
+        for (size_t i = 0; i < LED_BYTE_N * TEST_A; i++) {
+            uint8_t byte = (~*(curr_usb_buffer + i/2)) << (4 * (i % 2));
+
+            *bitband_addr = byte >> 7; bitband_addr += 8;
+            *bitband_addr = byte >> 6; bitband_addr += 8;
+            *bitband_addr = byte >> 5; bitband_addr += 8;
+            *bitband_addr = byte >> 4; bitband_addr += 8;
+            bitband_addr += 32;
+        }
     }
+
     led_dma_count++;
 }
 
@@ -196,7 +234,7 @@ static void leds_timer_init() {
 
 void leds_init() {
     memset((void*)led_dma_buffer, 0xff, ARRAY_SIZE(led_dma_buffer));
-    memset((void*)led_bit_buffer, 0xff, ARRAY_SIZE(led_bit_buffer));
+    memset((void*)usb_bit_buffer, 0xff, ARRAY_SIZE(usb_bit_buffer));
 
     leds_gpio_init();
     HAL_Delay(1000);
@@ -237,10 +275,6 @@ void leds_send() {
     TIM2->CNT = TIM_2_PERIOD - 1;
 
     __HAL_TIM_ENABLE(&tim_2);
-}
-
-volatile uint8_t* leds_get_buffer() {
-    return led_bit_buffer;
 }
 
 void leds_wait_sent() {
