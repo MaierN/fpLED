@@ -1,5 +1,6 @@
 
 import os, time, math
+import font
 
 STRIP_N = 8
 LED_N = 256
@@ -38,21 +39,60 @@ def set_at_index(buf, index, value):
         buf[i] &= 0xf0
         buf[i] |= val >> 4
 
-def set_pixel(buf, strip, pixel, r, g, b):
-    if pixel >= LED_N or strip >= STRIP_N:
-        print("wrong strip or pixel")
-        exit()
-    set_at_index(buf, (strip * LED_N + pixel) * 3 + 0, g)
-    set_at_index(buf, (strip * LED_N + pixel) * 3 + 1, r)
-    set_at_index(buf, (strip * LED_N + pixel) * 3 + 2, b)
+def set_pixel(buf, strips, pixel, color):
+    r, g, b = color
+    for strip in strips:
+        if pixel >= LED_N or strip >= STRIP_N:
+            print("wrong strip (" + str(strip) + ") or pixel (" + str(pixel) + ")")
+            exit()
+        set_at_index(buf, (strip * LED_N + pixel) * 3 + 0, g)
+        set_at_index(buf, (strip * LED_N + pixel) * 3 + 1, r)
+        set_at_index(buf, (strip * LED_N + pixel) * 3 + 2, b)
+
+def set_pixel_xy(buf, strips, x, y, color):
+    set_pixel(buf, strips, y * 8 + (x if y % 2 == 0 else 7 - x), color)
+
 
 test = 0
 pos = -1
 count = 0
 max_count = 100
-STRIP = 0 # 5 ??
-STRIP_2 = 7
+STRIP = [0, 1, 2, 3, 4, 5, 6, 7] # 5 ??
+BRIGHTNESS = 16
+STRIP_2 = [0]
 t0 = time.time()
+
+colors = [
+    (BRIGHTNESS, 0, 0),
+    (0, BRIGHTNESS, 0),
+    (0, 0, BRIGHTNESS),
+    (BRIGHTNESS, BRIGHTNESS, 0),
+    (BRIGHTNESS, 0, BRIGHTNESS),
+    (0, BRIGHTNESS, BRIGHTNESS),
+    (BRIGHTNESS, BRIGHTNESS, BRIGHTNESS),
+    (BRIGHTNESS, BRIGHTNESS, BRIGHTNESS),
+]
+
+ascend = True
+while True:
+    for i in STRIP:
+        for x in range(8):
+            for y in range(8):
+                c = colors[i] if font.font_is_on(str(i), x, y) else (0, 0, 0)
+                set_pixel_xy(buffer, [i], x, y+pos, c)
+    update(buffer)
+    for i in STRIP:
+        for x in range(8):
+            for y in range(8):
+                set_pixel_xy(buffer, [i], x, y+pos, (0, 0, 0))
+    pos += 1 if ascend else -1
+    if pos > LED_N/8 - 8:
+        pos -= 1
+        ascend = False
+    if pos < 0:
+        pos += 1
+        ascend = True
+    time.sleep(0.02)
 
 '''
 buffer_r = bytearray(SIZE)
@@ -92,15 +132,15 @@ while True:
     if test % 10 == 0:
         if pos >= 0:
             for i in range(8):
-                set_pixel(buffer, STRIP, pos*8+i, 0, 0, 0)
+                set_pixel(buffer, STRIP, pos*8+i, (0, 0, 0))
         pos = (pos+1) % (LED_N/8)
         for i in range(8):
-            set_pixel(buffer, STRIP, pos*8+i, 0, 16, 16)
+            set_pixel(buffer, STRIP, pos*8+i, (0, 16, 16))
 
     if test % 2 == 0:
-        set_pixel(buffer, STRIP_2, 10, 16, 0, 0)
+        set_pixel(buffer, STRIP_2, 10, (16, 0, 0))
     else:
-        set_pixel(buffer, STRIP_2, 10, 0, 0, 0)
+        set_pixel(buffer, STRIP_2, 10, (0, 0, 0))
     test += 1
 
     update(buffer)
