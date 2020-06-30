@@ -28,7 +28,9 @@ DMA_HandleTypeDef dma_down_1;
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7};
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 
-volatile uint8_t usb_bit_buffer[6 * 512];
+volatile uint8_t usb_bit_buffer_1[6 * 512];
+volatile uint8_t usb_bit_buffer_2[6 * 512];
+volatile uint8_t* leds_usb_bit_buffer = usb_bit_buffer_1;
 
 #define TEST_A 2
 volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * TEST_A];
@@ -38,33 +40,14 @@ volatile uint32_t reset_counter = 0;
 
 volatile bool image_shown = true; // true if finished showing image
 
-
-/*static void prepare_showing_buffer() {
-    for (size_t strip = 0; strip < 8; strip++) {
-
-        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_bit_buffer, strip);
-
-        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + strip * LED_N * LED_BYTE_N / 2;
-
-        for (size_t i = 0; i < LED_N * LED_BYTE_N; i++) {
-            uint8_t byte = (~*(curr_usb_buffer + i/2)) << (4 * (i % 2));
-
-            *bitband_addr = byte >> 7; bitband_addr += 8;
-            *bitband_addr = byte >> 6; bitband_addr += 8;
-            *bitband_addr = byte >> 5; bitband_addr += 8;
-            *bitband_addr = byte >> 4; bitband_addr += 8;
-            bitband_addr += 32;
-        }
-    }
-}*/
-
 static void prepare_dma_buffer_half() {
     size_t a = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * TEST_A;
+    volatile uint8_t* usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
     for (size_t strip = 0; strip < 8; strip++) {
         volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + a, strip);
 
-        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + led_dma_count * LED_BYTE_N  + strip * LED_N * LED_BYTE_N / 2;
+        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + led_dma_count * LED_BYTE_N * TEST_A / 2  + strip * LED_N * LED_BYTE_N / 2;
 
         for (size_t i = 0; i < LED_BYTE_N * TEST_A; i++) {
             uint8_t byte = (~*(curr_usb_buffer + i/2)) << (4 * (i % 2));
@@ -73,7 +56,10 @@ static void prepare_dma_buffer_half() {
             *bitband_addr = byte >> 6; bitband_addr += 8;
             *bitband_addr = byte >> 5; bitband_addr += 8;
             *bitband_addr = byte >> 4; bitband_addr += 8;
-            bitband_addr += 32;
+            *bitband_addr = 1; bitband_addr += 8;
+            *bitband_addr = 1; bitband_addr += 8;
+            *bitband_addr = 1; bitband_addr += 8;
+            *bitband_addr = 1; bitband_addr += 8;
         }
     }
 
@@ -217,7 +203,7 @@ static void leds_timer_init() {
 
     tim_2_oc_0.OCMode = TIM_OCMODE_PWM1;
     tim_2_oc_0.OCPolarity = TIM_OCPOLARITY_HIGH;
-    tim_2_oc_0.Pulse = TIM_2_PERIOD * 32 / 100; // ws2812b datasheet -> ~ 400 ns high time for '0' bit
+    tim_2_oc_0.Pulse = TIM_2_PERIOD * 27 / 100; // ws2812b datasheet -> ~ 400 ns high time for '0' bit
     tim_2_oc_0.OCFastMode = TIM_OCFAST_DISABLE;
     HAL_TIM_PWM_ConfigChannel(&tim_2, &tim_2_oc_0, TIM_CHANNEL_1);
 
@@ -234,7 +220,8 @@ static void leds_timer_init() {
 
 void leds_init() {
     memset((void*)led_dma_buffer, 0xff, ARRAY_SIZE(led_dma_buffer));
-    memset((void*)usb_bit_buffer, 0xff, ARRAY_SIZE(usb_bit_buffer));
+    memset((void*)usb_bit_buffer_1, 0x00, ARRAY_SIZE(usb_bit_buffer_1));
+    memset((void*)usb_bit_buffer_2, 0x00, ARRAY_SIZE(usb_bit_buffer_2));
 
     leds_gpio_init();
     HAL_Delay(1000);
@@ -245,6 +232,8 @@ void leds_init() {
 
 void leds_send() {
     image_shown = false;
+
+    leds_usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
     led_dma_count = 0;
     prepare_dma_buffer_half();
@@ -259,7 +248,6 @@ void leds_send() {
     dma_up.Instance->CNDTR = ARRAY_SIZE(led_dma_buffer);
     dma_down_0.Instance->CNDTR = ARRAY_SIZE(led_dma_buffer);
     dma_down_1.Instance->CNDTR = ARRAY_SIZE(led_dma_buffer);
-
 
     // clear all TIM2 flags
     __HAL_TIM_CLEAR_FLAG(&tim_2, TIM_FLAG_UPDATE | TIM_FLAG_CC1 | TIM_FLAG_CC2 | TIM_FLAG_CC3 | TIM_FLAG_CC4);

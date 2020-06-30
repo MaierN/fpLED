@@ -9,7 +9,7 @@
 
 #define LED_RESET_PERIOD_COUNT 50
 
-extern volatile uint8_t usb_bit_buffer[];
+volatile uint8_t* leds_usb_bit_buffer;
 void leds_init();
 void leds_send();
 void leds_wait_sent();
