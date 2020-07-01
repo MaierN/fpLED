@@ -4,8 +4,9 @@
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
-#define LED_N 256    // number of led on each pin
-#define LED_BYTE_N 3 // number of byte in each led
+#define STRIP_N 8    // number of LED strips in parallel
+#define LED_N 256    // number of LED on each pin
+#define LED_BYTE_N 3 // number of byte in each LED
 
 #define LED_RESET_PERIOD_COUNT 50
 

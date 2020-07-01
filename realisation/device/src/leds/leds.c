@@ -28,12 +28,12 @@ DMA_HandleTypeDef dma_down_1;
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7};
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 
-volatile uint8_t usb_bit_buffer_1[6 * 512];
-volatile uint8_t usb_bit_buffer_2[6 * 512];
+volatile uint8_t usb_bit_buffer_1[STRIP_N * LED_N * LED_BYTE_N / 2];
+volatile uint8_t usb_bit_buffer_2[STRIP_N * LED_N * LED_BYTE_N / 2];
 volatile uint8_t* leds_usb_bit_buffer = usb_bit_buffer_1;
 
-#define TEST_A 2
-volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * TEST_A];
+#define DMA_BUFFER_LED_N 2
+volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * DMA_BUFFER_LED_N];
 volatile size_t led_dma_count = 0;
 
 volatile uint32_t reset_counter = 0;
@@ -41,15 +41,15 @@ volatile uint32_t reset_counter = 0;
 volatile bool image_shown = true; // true if finished showing image
 
 static void prepare_dma_buffer_half() {
-    size_t a = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * TEST_A;
+    size_t a = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
     volatile uint8_t* usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
     for (size_t strip = 0; strip < 8; strip++) {
         volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + a, strip);
 
-        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + led_dma_count * LED_BYTE_N * TEST_A / 2  + strip * LED_N * LED_BYTE_N / 2;
+        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + led_dma_count * LED_BYTE_N * DMA_BUFFER_LED_N / 2  + strip * LED_N * LED_BYTE_N / 2;
 
-        for (size_t i = 0; i < LED_BYTE_N * TEST_A; i++) {
+        for (size_t i = 0; i < LED_BYTE_N * DMA_BUFFER_LED_N; i++) {
             uint8_t byte = (~*(curr_usb_buffer + i/2)) << (4 * (i % 2));
 
             *bitband_addr = byte >> 7; bitband_addr += 8;
@@ -67,13 +67,13 @@ static void prepare_dma_buffer_half() {
 }
 
 static void dma_transfer_half_complete_handler(DMA_HandleTypeDef *dma_handle) {
-    if (led_dma_count < LED_N/TEST_A) {
+    if (led_dma_count < LED_N/DMA_BUFFER_LED_N) {
         prepare_dma_buffer_half();
     }
 }
 
 static void dma_transfer_complete_handler(DMA_HandleTypeDef *dma_handle) {
-    if (led_dma_count < LED_N/TEST_A) {
+    if (led_dma_count < LED_N/DMA_BUFFER_LED_N) {
         prepare_dma_buffer_half();
     } else {
         // disable DMA transfer

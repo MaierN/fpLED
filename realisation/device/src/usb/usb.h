@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 #define STORAGE_LUN_NBR 1
-#define STORAGE_BLK_NBR (4+1+12)
+#define STORAGE_BLK_NBR 45
 #define STORAGE_BLK_SIZ 512
 
 void usb_init();

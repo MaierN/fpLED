@@ -19,12 +19,10 @@ write_indicator = bytearray(1)
 write_indicator[0] = 0
 
 def update(buf):
-    with open('../test/testfile.txt', 'r+b') as f:
-        f.seek(512)
+    with open('../test/data', 'r+b') as f:
         f.write(buf)
     os.sync()
-    with open('../test/testfile.txt', 'r+b') as f:
-        f.seek(0)
+    with open('../test/control', 'r+b') as f:
         write_indicator[0] = (write_indicator[0] + 1) % 256
         f.write(write_indicator)
     os.sync()
@@ -58,7 +56,7 @@ pos = -1
 count = 0
 max_count = 100
 STRIP = [0, 1, 2, 3, 4, 5, 6, 7] # 5 ??
-BRIGHTNESS = 16
+BRIGHTNESS = 32
 STRIP_2 = [0]
 t0 = time.time()
 
