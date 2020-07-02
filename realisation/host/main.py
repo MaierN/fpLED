@@ -4,9 +4,9 @@ import font
 
 STRIP_N = 8
 LED_N = 256
-SIZE = round(STRIP_N * LED_N * 3 / 2)
+SIZE = round(STRIP_N * LED_N * 3)
 
-if SIZE > 3*1024:
+if SIZE > 6*1024:
     print("WRONG SIZE")
 print(SIZE)
 
@@ -15,19 +15,23 @@ buffer = bytearray(SIZE)
 for i in range(len(buffer)):
     buffer[i] = 0
 
-write_indicator = bytearray(1)
-write_indicator[0] = 0
+control = bytearray(4)
+control[0] = 0
 
 def update(buf):
     with open('../test/data', 'r+b') as f:
         f.write(buf)
     os.sync()
     with open('../test/control', 'r+b') as f:
-        write_indicator[0] = (write_indicator[0] + 1) % 256
-        f.write(write_indicator)
+        control[0] = (control[0] + 1) % 256
+        control[1] = 0
+        control[2] = 0
+        control[3] = 1
+        f.write(control)
     os.sync()
 
 def set_at_index(buf, index, value):
+    '''
     i = math.floor(index/2)
     val = value & 0xf0
     if (index % 2) == 0:
@@ -36,6 +40,8 @@ def set_at_index(buf, index, value):
     else:
         buf[i] &= 0xf0
         buf[i] |= val >> 4
+    '''
+    buf[int(index)] = value
 
 def set_pixel(buf, strips, pixel, color):
     r, g, b = color
@@ -71,6 +77,7 @@ colors = [
     (BRIGHTNESS, BRIGHTNESS, BRIGHTNESS),
 ]
 
+'''
 ascend = True
 while True:
     for i in STRIP:
@@ -91,7 +98,7 @@ while True:
         pos += 1
         ascend = True
     time.sleep(0.02)
-
+'''
 '''
 buffer_r = bytearray(SIZE)
 buffer_g = bytearray(SIZE)
@@ -133,10 +140,10 @@ while True:
                 set_pixel(buffer, STRIP, pos*8+i, (0, 0, 0))
         pos = (pos+1) % (LED_N/8)
         for i in range(8):
-            set_pixel(buffer, STRIP, pos*8+i, (0, 16, 16))
+            set_pixel(buffer, STRIP, pos*8+i, (0, BRIGHTNESS, BRIGHTNESS))
 
     if test % 2 == 0:
-        set_pixel(buffer, STRIP_2, 10, (16, 0, 0))
+        set_pixel(buffer, STRIP_2, 10, (BRIGHTNESS, 0, 0))
     else:
         set_pixel(buffer, STRIP_2, 10, (0, 0, 0))
     test += 1

@@ -14,5 +14,6 @@ volatile uint8_t* leds_usb_bit_buffer;
 void leds_init();
 void leds_send();
 void leds_wait_sent();
+void leds_set_compression_mode(uint8_t mode);
 
 #endif

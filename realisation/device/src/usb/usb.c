@@ -221,6 +221,16 @@ const uint8_t usb_filesystem_metadata[] = {
     0x0, 0x0,
 };
 
+volatile static struct {
+    uint8_t write_indicator;
+    uint8_t compression_mode;
+    uint16_t n_leds;
+} control = {
+    0x0,
+    0x0,
+    256,
+};
+
 void usb_init() {
     MX_USB_DEVICE_Init();
 }
@@ -229,6 +239,11 @@ void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
     for (size_t i = 0; i < block_count; i++) {
         if (block_address < 4) {
             memcpy(buffer + i*STORAGE_BLK_SIZ, (void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), STORAGE_BLK_SIZ);
+        } else if (block_address == 4) {
+            memset(buffer, 0x00, STORAGE_BLK_SIZ);
+            buffer[0] = control.write_indicator;
+            buffer[1] = control.compression_mode;
+            *((uint16_t*)(buffer+2)) = control.n_leds;
         } else {
             // we won't read anything useful
             //memset(buffer, 0x00, STORAGE_BLK_SIZ);
@@ -237,28 +252,37 @@ void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
     }
 }
 
-static uint8_t last_write_indicator = 0x0;
 void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
+    HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 1, 0);
     for (size_t i = 0; i < block_count; i++) {
         if (block_address < 4) {
             // filesystem metadata is read-only (in falsh), to save sram space
             //memcpy((void*)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), buffer, STORAGE_BLK_SIZ);
         } else if (block_address == 4) {
-            if (buffer[0] != last_write_indicator) {
-                // wrote indicator byte, sending image
-                last_write_indicator = buffer[0];
+            uint8_t write_indicator = buffer[0];
+            uint8_t compression_mode = buffer[1];
+            uint16_t n_leds = *((uint16_t*)(buffer+2));
 
-                HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 1, 0);
+            if (compression_mode != control.compression_mode || n_leds != control.n_leds || write_indicator != control.write_indicator) {
                 leds_wait_sent();
-                HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
+            }
 
+            if (compression_mode != control.compression_mode) {
+                control.compression_mode = compression_mode;
+                leds_set_compression_mode(compression_mode);
+            }
+            if (n_leds != control.n_leds) {
+                control.n_leds = n_leds;
+                // todo
+            }
+            if (write_indicator != control.write_indicator) {
+                control.write_indicator = write_indicator;
                 leds_send();
             }
         } else {
-            HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 1, 0);
             memcpy((void*)(leds_usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - 5))), buffer + i*STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
-            HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
         }
         block_address++;
     }
+    HAL_NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, 0, 0);
 }
