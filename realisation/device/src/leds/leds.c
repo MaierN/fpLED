@@ -1,3 +1,34 @@
+/*
+  WS2812B CPU and memory efficient library
+  Date: 28.9.2016
+  Author: Martin Hubacek
+  	  	  http://www.martinhubacek.cz
+  	  	  @hubmartin
+  Licence: MIT License
+*/
+
+/**
+ * Project: HEIA-FR / Accélérateur de tour télécom
+ *
+ * Purpose: This module sends color codes on GPIO pins to control ws281x LED strips
+ * 
+ * This module was written by Nicolas Maier, based on Martin Hubacek's work (see original header above)
+ * reference source code used to make this module: https://github.com/hubmartin/WS2812B_STM32F103/blob/master/src/ws2812b.c
+ * post explaining principles behind this code: http://www.martinhubacek.cz/arm/improved-stm32-ws2812b-library
+ * 
+ * What was copied or inspired from Martin Hubacek's work:
+ * - Timer, DMA and GPIO configuration and usage with their specific registers
+ * - Idea to use 3 DMA channels to generate the signal, with 3 trigger sources from the timer, as explained in the post linked above
+ * - Usage of DMA transfer completion handles ("half complete" and "complete") to prepare DMA buffer
+ * - Usage of "bit banding" to prepare DMA buffer quickly
+ * 
+ * Modifications/improvements:
+ * - Removed unused parts, clean code
+ * - More explicit variable names
+ * - Added double buffer mechanic
+ * - Added compression/decompression methods for more efficient data transfer and storage
+ * - Various specific adjustments to fit the project's needs
+ */
 
 #include <stdbool.h>
 #include <string.h>
@@ -8,9 +39,17 @@
 
 #include "exception_handler/exception_handler.h"
 
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
 #define BITBANDING_BASE_ADDRESS 0x20000000
 #define BITBANDING_BITBAND_ADDRESS 0x22000000
 #define BITBANDING_GET_ADDRESS(var_address, bit_offset) ((volatile uint32_t *) (BITBANDING_BITBAND_ADDRESS + ((uint32_t)(var_address - BITBANDING_BASE_ADDRESS) << 5) + (bit_offset << 2)))
+
+#define STRIP_N 8    // number of LED strips in parallel
+#define LED_N 256    // number of LEDs on each pin
+#define LED_BYTE_N 3 // number of byte in each LED
+
+#define LED_RESET_PERIOD_COUNT 50 // number of timer period to generate the "reset" signal
 
 #define LED_PORT GPIOA
 #define LED_PORT_ENABLE __HAL_RCC_GPIOA_CLK_ENABLE
@@ -41,12 +80,15 @@ volatile uint8_t compression_mode = 0;
 
 typedef void (*prepare_dma_buffer_half_t)();
 
+/**
+ * Prepare data with compression mode 0: no compression
+ */
 static void prepare_dma_buffer_half_mode_0() {
-    size_t first_half = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
+    size_t offset = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
     volatile uint8_t* usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
     for (size_t strip = 0; strip < 8; strip++) {
-        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + first_half, strip);
+        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + offset, strip);
 
         volatile uint8_t* curr_usb_buffer = usb_bit_buffer + led_dma_count * LED_BYTE_N * DMA_BUFFER_LED_N + strip * LED_N * LED_BYTE_N;
 
@@ -65,6 +107,9 @@ static void prepare_dma_buffer_half_mode_0() {
     }
 }
 
+/**
+ * Prepare data with compression mode 1: only the 4 MSB of each bytes are sent
+ */
 static void prepare_dma_buffer_half_mode_1() {
     size_t first_half = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
     volatile uint8_t* usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
@@ -94,17 +139,27 @@ prepare_dma_buffer_half_t prepare_dma_buffer_half_modes[] = {
     &prepare_dma_buffer_half_mode_1,
 };
 
+/**
+ * Prepare data using the right compression mode
+ */
 static void prepare_dma_buffer_half() {
     prepare_dma_buffer_half_modes[compression_mode]();
     led_dma_count++;
 }
 
+/**
+ * When the first half has been sent, prepare first half of the buffer for the next transfer
+ */
 static void dma_transfer_half_complete_handler(DMA_HandleTypeDef *dma_handle) {
     if (led_dma_count < LED_N/DMA_BUFFER_LED_N) {
         prepare_dma_buffer_half();
     }
 }
 
+/**
+ * When the second half has been sent, prepare second half of the buffer for the next transfer
+ * If the whole transfer has been done, disable the DMA and starts sending the "reset" and enable the Timer interrupts
+ */
 static void dma_transfer_complete_handler(DMA_HandleTypeDef *dma_handle) {
     if (led_dma_count < LED_N/DMA_BUFFER_LED_N) {
         prepare_dma_buffer_half();
@@ -119,14 +174,17 @@ static void dma_transfer_complete_handler(DMA_HandleTypeDef *dma_handle) {
         __HAL_TIM_DISABLE_DMA(&tim_2, TIM_DMA_CC1);
         __HAL_TIM_DISABLE_DMA(&tim_2, TIM_DMA_CC2);
 
-        // enable TIM2 update interrupts (will be used to time the RST signal > 50 us)
-        __HAL_TIM_ENABLE_IT(&tim_2, TIM_IT_UPDATE);
-
         // set pin to low, for RST signal
         LED_PORT->BRR = all_pins[0];
+
+        // enable TIM2 update interrupts (will be used to time the RST signal > 50 us)
+        __HAL_TIM_ENABLE_IT(&tim_2, TIM_IT_UPDATE);
     }
 }
 
+/**
+ * Handles the end of the "reset" signal, and sets the image_shown flag
+ */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     // wait 50 us for RST signal
     if (reset_counter < LED_RESET_PERIOD_COUNT) {
@@ -154,6 +212,9 @@ void TIM2_IRQHandler(void) {
     HAL_TIM_IRQHandler(&tim_2);
 }
 
+/**
+ * Initializes GPIO module, enables pins that will be connected to LED strips
+ */
 static void leds_gpio_init() {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     LED_PORT_ENABLE();
@@ -171,6 +232,9 @@ static void leds_gpio_init() {
     HAL_GPIO_Init(LED_PORT, &GPIO_InitStruct);
 }
 
+/**
+ * Initializes DMA module, sets up the 3 channels used to generate the LED signals
+ */
 static void leds_dma_init() {
     __HAL_RCC_DMA1_CLK_ENABLE();
 
@@ -218,6 +282,9 @@ static void leds_dma_init() {
     HAL_DMA_Start_IT(&dma_down_1, (uint32_t)all_pins, (uint32_t)&LED_PORT->BRR, ARRAY_SIZE(led_dma_buffer));
 }
 
+/**
+ * Initializes timer module, enables TIM2 and two of it's output channels to control the 3 DMAs
+ */
 static void leds_timer_init() {
     __HAL_RCC_TIM2_CLK_ENABLE();
 
@@ -252,20 +319,24 @@ static void leds_timer_init() {
 }
 
 void leds_init() {
+    // empty all buffers
     memset((void*)led_dma_buffer, 0xff, ARRAY_SIZE(led_dma_buffer));
     memset((void*)usb_bit_buffer_1, 0x00, ARRAY_SIZE(usb_bit_buffer_1));
     memset((void*)usb_bit_buffer_2, 0x00, ARRAY_SIZE(usb_bit_buffer_2));
 
+    // init GPIO, DMA and timer components
     leds_gpio_init();
-    HAL_Delay(1000);
-
     leds_dma_init();
     leds_timer_init();
+
+    // lower SysTick interrupt priority to avoid getting preemptively interrupted while executing prepare_dma_buffer_half()
+    HAL_NVIC_SetPriority(SysTick_IRQn, 2, 0);
 }
 
 void leds_send() {
     image_shown = false;
 
+    // handle double buffer
     leds_usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
     led_dma_count = 0;
@@ -285,6 +356,7 @@ void leds_send() {
     // clear all TIM2 flags
     __HAL_TIM_CLEAR_FLAG(&tim_2, TIM_FLAG_UPDATE | TIM_FLAG_CC1 | TIM_FLAG_CC2 | TIM_FLAG_CC3 | TIM_FLAG_CC4);
 
+    // enable DMA and timer
     __HAL_DMA_ENABLE(&dma_up);
     __HAL_DMA_ENABLE(&dma_down_0);
     __HAL_DMA_ENABLE(&dma_down_1);

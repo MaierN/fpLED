@@ -1,3 +1,33 @@
+/**
+ * Copyright (c) 2020 University of Applied Sciences Western Switzerland / Fribourg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *
+ * Project: HEIA-FR / Accélérateur de tour télécom
+ *
+ * Purpose: This module provides the main() function, which sets up the other modules
+ *
+ * Author:  Nicolas Maier
+ * Date:    June 2020
+ */
+
 
 #include "stm32f1xx_hal.h"
 
@@ -8,19 +38,21 @@
 void system_clock_init();
 void gpio_init();
 
+/**
+ * Sets up the modules used for this project
+ */
 int main() {
+    // initialize HAL library and set up clock configuration
     HAL_Init();
-    HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-    HAL_NVIC_SetPriority(SysTick_IRQn, 2, 0);
-
     system_clock_init();
-    gpio_init();
 
+    // initialize components
+    gpio_init();
     leds_init();
     usb_init();
 
+    // main loop, not used because all the work is done in interrupt handlers
     //int a = 0;
-
     while (1) {
         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
 
@@ -32,8 +64,11 @@ int main() {
     }
 }
 
+/**
+ * Configures system clock
+ * A detailed explanation about the values used in this function can be found here: https://www.onetransistor.eu/2018/09/stm32cube-code-init-bluepill.html
+ */
 void system_clock_init() {
-    // useful information about this function : https://www.onetransistor.eu/2018/09/stm32cube-code-init-bluepill.html
 
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
@@ -75,6 +110,9 @@ void system_clock_init() {
     }
 }
 
+/**
+ * Enables GPIO pin 13 from GPIO bank C, which controls the embedded LED
+ */
 void gpio_init() {
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -85,4 +123,9 @@ void gpio_init() {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+}
+
+void SysTick_Handler(void) {
+    // required in order to use HAL library
+    HAL_IncTick();
 }
