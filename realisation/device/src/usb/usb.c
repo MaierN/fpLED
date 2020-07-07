@@ -32,6 +32,7 @@
 #include <stdint.h>
 
 #include "leds/leds.h"
+#include "lz/lz.h"
 #include "stm32f1xx_hal.h"
 #include "usb.h"
 #include "usb_device.h"
@@ -173,7 +174,20 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
 
         if (block_address >= DATA_FILE_START_BLOCK) {
             // "data" file
-
+/*
+            uint32_t table[256] = {0};
+            uint32_t encoded_index = 0;
+            uint32_t decoded_index = 0;
+            uint8_t table_index = 0;
+            for (int i = 0; i < 5; i++) {
+                lz_decode_symbol(buffer + i * STORAGE_BLK_SIZ, (leds_usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - DATA_FILE_START_BLOCK))), table, &encoded_index, &decoded_index, &table_index);
+            }
+*/
+            memcpy((void *)(leds_usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - DATA_FILE_START_BLOCK))), buffer + i * STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
+            memcpy((void *)(leds_usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - DATA_FILE_START_BLOCK))), buffer + i * STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
+            memcpy((void *)(leds_usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - DATA_FILE_START_BLOCK))), buffer + i * STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
+            memcpy((void *)(leds_usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - DATA_FILE_START_BLOCK))), buffer + i * STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
+            memcpy((void *)(leds_usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - DATA_FILE_START_BLOCK))), buffer + i * STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
             memcpy((void *)(leds_usb_bit_buffer + (STORAGE_BLK_SIZ * (block_address - DATA_FILE_START_BLOCK))), buffer + i * STORAGE_BLK_SIZ, STORAGE_BLK_SIZ);
 
         } else if (block_address >= CONTROL_FILE_START_BLOCK) {
