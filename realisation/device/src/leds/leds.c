@@ -303,7 +303,7 @@ static void leds_timer_init() {
 
     tim_2_oc_0.OCMode = TIM_OCMODE_PWM1;
     tim_2_oc_0.OCPolarity = TIM_OCPOLARITY_HIGH;
-    tim_2_oc_0.Pulse = TIM_2_PERIOD * 27 / 100; // ws2812b datasheet -> ~ 400 ns high time for '0' bit
+    tim_2_oc_0.Pulse = TIM_2_PERIOD * 24 / 100; // ws2812b datasheet -> ~ 400 ns high time for '0' bit
     tim_2_oc_0.OCFastMode = TIM_OCFAST_DISABLE;
     HAL_TIM_PWM_ConfigChannel(&tim_2, &tim_2_oc_0, TIM_CHANNEL_1);
 

@@ -4,7 +4,7 @@ import font
 import cv2
 import numpy as np
 
-STRIP_N = 8
+STRIP_N = 1
 LED_N = 256
 SIZE = round(STRIP_N * LED_N * 3)
 
@@ -26,14 +26,14 @@ def update(buf):
     os.sync()
     with open('../test/control', 'r+b') as f:
         control[0] = (control[0] + 1) % 256
-        control[1] = 1
+        control[1] = 0
         control[2] = 0
         control[3] = 1
         f.write(control)
     os.sync()
 
 def set_at_index(buf, index, value):
-    
+    '''
     i = math.floor(index/2)
     val = value & 0xf0
     if (index % 2) == 0:
@@ -44,7 +44,6 @@ def set_at_index(buf, index, value):
         buf[i] |= val >> 4
     '''
     buf[int(index)] = value
-    '''
 
 def set_pixel(buf, strips, pixel, color):
     r, g, b = color
@@ -64,7 +63,7 @@ test = 0
 pos = -1
 count = 0
 max_count = 100
-STRIP = [0, 1, 2, 3, 4, 5, 6, 7] # 5 ??
+STRIP = [0] # 5 ??
 BRIGHTNESS = 16
 STRIP_2 = [0]
 t0 = time.time()
@@ -180,7 +179,7 @@ while True:
 '''
 
 while True:
-    if test % 1 == 0:
+    if test % 50 == 0:
         if pos >= 0:
             for i in range(8):
                 set_pixel(buffer, STRIP, pos*8+i, (0, 0, 0))
