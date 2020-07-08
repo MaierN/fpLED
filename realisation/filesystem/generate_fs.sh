@@ -26,19 +26,19 @@
 # Author:  Nicolas Maier
 # Date:    June 2020
 
-mformat -v "TELE TOWER" -t 1 -h 1 -s 45 -S 2 -C -i fs.img -c 1 -r 1 -L 1
+mformat -v "TELE TOWER" -t 1 -h 1 -s 7 -S 2 -C -i fs.img -c 1 -r 1 -L 1
 
-dd if=/dev/zero of=control bs=512 count=1
+dd if=/dev/zero of=config bs=512 count=1
 dd if=/dev/zero of=coding bs=512 count=1
-dd if=/dev/zero of=data bs=19968 count=1
+dd if=/dev/zero of=data bs=512 count=1
 
-mcopy -i fs.img control ::/
+mcopy -i fs.img config ::/
 mcopy -i fs.img coding ::/
 mcopy -i fs.img data ::/
 
 python3 print_data.py
 
 rm fs.img
-rm control
+rm config
 rm coding
 rm data
