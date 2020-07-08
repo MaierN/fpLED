@@ -10,16 +10,22 @@ class TelecomTower():
         self._encoded_buffer = bytearray(512 - 5)
 
     def send(self, data):
-        test_fff = bytearray(256)
-        for i in range(256):
-            test_fff[i] = i
-        huffman_code = canonical_huffman.get_huffman_code(test_fff, 256)
+        print('data:')
+        print(data)
+        huffman_code = canonical_huffman.get_huffman_code(data, 256)
         canonical_code, size_counts, sorted_symbols = canonical_huffman.get_canonical_huffman_code(huffman_code)
+
+        print('canonical_code:')
+        print(canonical_code)
+        print('size_counts:')
+        print(size_counts)
+        print('sorted_symbols:')
+        print(sorted_symbols)
         
         with open(self._path + '/coding', 'r+b') as f:
             f.write(bytes(size_counts))
             f.write(bytes(sorted_symbols))
-        os.sync()
+        #os.sync()
 
         test = 0
         test_data = []
@@ -27,6 +33,8 @@ class TelecomTower():
         offset = 0
         while offset < len(data):
             encoded_size = canonical_huffman.encode_data(canonical_code, data, offset, self._encoded_buffer)
+            print('encoded_buffer:')
+            print(self._encoded_buffer)
             test_data.append((struct.pack(b'HHB', offset, encoded_size, 0 if offset + encoded_size < len(data) else 1), bytearray(self._encoded_buffer)))
             with open(self._path + '/data', 'r+b') as f:
                 f.write(struct.pack(b'HHB', offset, encoded_size, 0 if offset + encoded_size < len(data) else 1))
@@ -42,8 +50,28 @@ class TelecomTower():
                     f.write(data[1])
                 os.sync()
 
-
 tt = TelecomTower('../test')
+
+buffer = bytearray(256*3*5)
+buffer[1] = 255
+
+tt.send(buffer)
+
+
+'''
+data = b'\x00\x01\x01\x01\x01\x02\x00\x03'
+test = canonical_huffman.get_huffman_code(data, 256)
+print(test)
+s = ''
+for i in test:
+    s += str(len(i)) + ' '
+print(s)
+
+print('---')
+can = canonical_huffman.get_canonical_huffman_code(test)
+print(can)
+'''
+'''
 buffer = bytearray(256*3*5)
 
 test = 0
@@ -76,3 +104,4 @@ while True:
             print('-------------------')
         print(fps)
         t0 = t1
+'''
