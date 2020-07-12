@@ -34,7 +34,7 @@ int main() {
     std::cout << std::endl << std::endl;*/
 
     TelecomTower tt("../test");
-    uint8_t buffer[256*3*5];
+    uint8_t buffer[256*3*2];
     std::memset(buffer, 0, sizeof(buffer));
 
     /*buffer[1] = 255;
@@ -46,10 +46,10 @@ int main() {
     size_t test = 0;
     size_t pos = 0;
     size_t count = 0;
-    size_t max_count = 100;
+    size_t max_count = 1;
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
     for(;;) {
-        if (test % 30 == 0) {
+        if (test % 1 == 0) {
             buffer[pos] = 0x00;
             pos = (pos+1) % sizeof(buffer);
             buffer[pos] = 0xff;
@@ -66,7 +66,7 @@ int main() {
 
         if (count % max_count == 0) {
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-            unsigned long long fps = max_count/(std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count()/1000000.0);
+            double fps = max_count/(std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count()/1000000.0) * 10;
             if (fps < 10) {
                 std::cout << "----------------" << std::endl;
                 std::cout << "----------------" << std::endl;

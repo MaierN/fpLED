@@ -23,35 +23,41 @@ class TelecomTower {
 
     void send(uint8_t* data, size_t data_size) {
 
-        std::vector<size_t> huffman_code_sizes = can_huf.get_huffman_code_sizes(data, data_size, 256);
-        std::tuple<std::vector<std::tuple<std::bitset<256>, size_t>>, std::vector<uint8_t>, std::vector<uint8_t>> canonical_huffman = can_huf.get_canonical_huffman_code(huffman_code_sizes);
+        uint8_t test_data[256];
+        for (size_t i = 0; i < 256; i++) {
+            test_data[i] = i;
+        }
+
+        std::vector<size_t> huffman_code_sizes = can_huf.get_huffman_code_sizes(test_data, 256, 256);
+        uint8_t size_counts[256];
+        uint8_t sorted_symbols[256];
+        std::memset(size_counts, 0, sizeof(size_counts));
+        std::memset(sorted_symbols, 0, sizeof(sorted_symbols));
+        std::vector<std::tuple<std::bitset<256>, size_t>> canonical_huffman_code = can_huf.get_canonical_huffman_code(huffman_code_sizes, size_counts, sorted_symbols);
 
         std::ofstream coding_file;
         coding_file.open(path + "/coding", std::ios::out | std::ios::binary);
-        for (uint8_t size_count : std::get<1>(canonical_huffman)) {
-            coding_file << size_count;
-        }
-        for (uint8_t symbol : std::get<2>(canonical_huffman)) {
-            coding_file << symbol;
-        }
+        coding_file.write((char*)size_counts, sizeof(size_counts));
+        coding_file.write((char*)sorted_symbols, sizeof(sorted_symbols));
         coding_file.close();
         sync();
 
-        //for (size_t test = 0; test < 10; test++) {
 
+        for (size_t test = 0; test < 10; test++) {
         size_t offset = 0;
-        while (offset < data_size) {
-            std::memset(encoded_buffer, 0, sizeof(encoded_buffer));
-            size_t encoded_size = can_huf.encode_data(std::get<0>(canonical_huffman), data, data_size, offset, encoded_buffer, sizeof(encoded_buffer));
+        while (offset + 512-5 < data_size) {
+            //std::memset(encoded_buffer, 0, sizeof(encoded_buffer));
+            //size_t encoded_size = can_huf.encode_data(canonical_huffman_code, data, data_size, offset, encoded_buffer, sizeof(encoded_buffer));
+            size_t encoded_size = 512-5;
 
             std::ofstream data_file;
             data_file.open(path + "/data", std::ios::out | std::ios::binary);
             uint8_t meta[5];
             *((uint16_t*)meta) = offset;
             *((uint16_t*)(meta + 2)) = encoded_size;
-            meta[4] = offset + encoded_size < data_size ? 0 : 1;
+            meta[4] = offset + encoded_size < data_size ? 1 : 1;
             data_file.write((char*)meta, sizeof(meta));
-            data_file.write((char*)encoded_buffer, sizeof(encoded_buffer));
+            data_file.write((char*)data + offset, 512-5);
             data_file.close();
             sync();
 
@@ -59,7 +65,7 @@ class TelecomTower {
             
         }
             
-        //}
+        }
     }
 };
 

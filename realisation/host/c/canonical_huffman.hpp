@@ -52,31 +52,27 @@ class CanonicalHuffman {
         return huffman_code_sizes;
     }
 
-    std::tuple<std::vector<std::tuple<std::bitset<256>, size_t>>, std::vector<uint8_t>, std::vector<uint8_t>> get_canonical_huffman_code(std::vector<size_t>& huffman_code_sizes) {
+    std::vector<std::tuple<std::bitset<256>, size_t>> get_canonical_huffman_code(std::vector<size_t>& huffman_code_sizes, uint8_t* size_counts, uint8_t* sorted_symbols) {
         bool same_code_length_flag = false;
         // for each code size, count number of symbols with this code size
-        std::vector<size_t> size_counts;
+        std::vector<size_t> size_counts_big;
         for (size_t i = 0; i < huffman_code_sizes.size(); i++) {
-            size_counts.push_back(0);
+            size_counts_big.push_back(0);
         }
         for (size_t code_size : huffman_code_sizes) {
-            size_counts[code_size]++;
-            if (size_counts[code_size] > 255) {
+            size_counts_big[code_size]++;
+            if (size_counts_big[code_size] > 255) {
                 same_code_length_flag = true;
             }
         }
         // american flag sort: count number of elements in each bucket
         std::vector<size_t> bucket_indexes;
         size_t acc = 0;
-        for (size_t i = 0; i < size_counts.size(); i++) {
+        for (size_t i = 0; i < size_counts_big.size(); i++) {
             bucket_indexes.push_back(acc);
-            acc += size_counts[i];
+            acc += size_counts_big[i];
         }
         // american flag sort: sort symbols by code size
-        std::vector<uint8_t> sorted_symbols;
-        for (size_t i = 0; i < huffman_code_sizes.size(); i++) {
-            sorted_symbols.push_back(0);
-        }
         for (size_t symbol = 0; symbol < huffman_code_sizes.size(); symbol++) {
             sorted_symbols[bucket_indexes[huffman_code_sizes[symbol]]] = symbol;
             bucket_indexes[huffman_code_sizes[symbol]]++;
@@ -88,9 +84,9 @@ class CanonicalHuffman {
         }
         size_t index = 0;
         std::bitset<256> first_code_on_row = 0;
-        for (size_t row = 0; row < size_counts.size(); row++) {
+        for (size_t row = 0; row < size_counts_big.size(); row++) {
             first_code_on_row <<= 1;
-            for (size_t i = 0; i < size_counts[row]; i++) {
+            for (size_t i = 0; i < size_counts_big[row]; i++) {
                 canonical_code[sorted_symbols[index]] = std::make_tuple(first_code_on_row, row);
                 index++;
 
@@ -106,16 +102,14 @@ class CanonicalHuffman {
             }
         }
 
-        std::vector<uint8_t> size_counts_small;
-        for (size_t i = 0; i < size_counts.size(); i++) {
-            if (same_code_length_flag) size_counts_small.push_back(0);
-            else size_counts_small.push_back(size_counts[i]);
+        for (size_t i = 0; i < size_counts_big.size(); i++) {
+            size_counts[i] = same_code_length_flag ? 0 : size_counts_big[i];
         }
         if (same_code_length_flag) {
-            size_counts_small[0] = 1;
+            size_counts[0] = 1;
         }
 
-        return std::make_tuple(canonical_code, size_counts_small, sorted_symbols);
+        return canonical_code;
     }
 
     size_t encode_data(std::vector<std::tuple<std::bitset<256>, size_t>>& canonical_code, uint8_t* raw_data, size_t raw_data_size, size_t offset, uint8_t* encoded_data, size_t encoded_data_size) {

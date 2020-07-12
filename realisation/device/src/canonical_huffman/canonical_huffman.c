@@ -16,10 +16,10 @@ void canonical_huffman_decode(volatile uint8_t* size_counts, volatile uint8_t* s
     uint32_t decoded_index = 0;
 
     if (size_counts[0]) {
-        while (decoded_index < decoded_size) {
+        /*while (decoded_index < decoded_size) {
             decoded_data[decoded_index++] = sorted_symbols[encoded_data[encoded_index++]];
-        }
-        //memcpy((void*)decoded_data, (void*)encoded_data, decoded_size);
+        }*/
+        memcpy((void*)decoded_data, (void*)encoded_data, decoded_size);
         return;
     }
 
