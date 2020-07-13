@@ -33,7 +33,11 @@
 #ifndef LEDS_H
 #define LEDS_H
 
-volatile uint8_t* leds_usb_bit_buffer; // buffer to be filled by the usb module with LED color compressed data
+#define STRIP_N 8    // number of LED strips in parallel
+#define LED_N 256    // number of LEDs on each pin
+#define LED_BYTE_N 3 // number of byte in each LED
+
+volatile uint8_t leds_usb_bit_buffer[STRIP_N * LED_N * LED_BYTE_N]; // buffer to be filled by the usb module with LED color compressed data
 
 /**
  * Initializes the leds module, must be called before using this module
@@ -49,6 +53,11 @@ void leds_send();
  * Waits for the sending to end, should be called before calling leds_send or changing parameters
  */
 void leds_wait_sent();
+
+/**
+ * Waits for the dma to have copied at least "progress" bytes, must be called before modifying "leds_usb_bit_buffer"
+ */
+void leds_wait_dma_progress(size_t progress);
 
 /**
  * Changes the compression mode, will change how the data in leds_usb_bit_buffer is interpreted/decompressed

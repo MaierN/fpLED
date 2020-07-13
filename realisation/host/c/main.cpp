@@ -8,7 +8,7 @@
 int main() {
 
     TelecomTower tt("../../test");
-    uint8_t buffer[256*3*4];
+    uint8_t buffer[256*3*8];
     std::memset(buffer, 0, sizeof(buffer));
 
     for (size_t i = 0; i < 512; i++) {
@@ -42,7 +42,7 @@ int main() {
     for(;;) {
         if (test % 50 == 0) {
             buffer[pos] = 0x00;
-            pos = (pos+1) % (256*3*4);
+            pos = (pos+1) % (256*3*8);
             buffer[pos] = 0xff;
         }
 

@@ -45,10 +45,6 @@
 #define BITBANDING_BITBAND_ADDRESS 0x22000000
 #define BITBANDING_GET_ADDRESS(var_address, bit_offset) ((volatile uint32_t *) (BITBANDING_BITBAND_ADDRESS + ((uint32_t)(var_address - BITBANDING_BASE_ADDRESS) << 5) + (bit_offset << 2)))
 
-#define STRIP_N 8    // number of LED strips in parallel
-#define LED_N 256    // number of LEDs on each pin
-#define LED_BYTE_N 3 // number of byte in each LED
-
 #define LED_RESET_PERIOD_COUNT 50 // number of timer period to generate the "reset" signal
 
 #define LED_PORT GPIOA
@@ -67,10 +63,7 @@ DMA_HandleTypeDef dma_down_1;
 uint8_t strip_pins[] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4, GPIO_PIN_5, GPIO_PIN_6, GPIO_PIN_7};
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 
-volatile uint8_t usb_bit_buffer_1[STRIP_N * LED_N * LED_BYTE_N];
-volatile uint8_t usb_bit_buffer_2[STRIP_N * LED_N * LED_BYTE_N];
-volatile uint8_t* leds_usb_bit_buffer = usb_bit_buffer_1;
-volatile size_t dma_buffer_next_byte = sizeof(usb_bit_buffer_1);
+volatile size_t dma_buffer_next_byte = sizeof(leds_usb_bit_buffer);
 
 #define DMA_BUFFER_LED_N 2
 volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * DMA_BUFFER_LED_N];
@@ -94,14 +87,13 @@ typedef void (*prepare_dma_buffer_half_t)();
  */
 static void prepare_dma_buffer_half_mode_0() {
     size_t offset = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
-    volatile uint8_t* usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
     for (size_t led_byte = 0; led_byte < DMA_BUFFER_LED_N*LED_BYTE_N; led_byte++) {
         for (size_t strip = 0; strip < 8; strip++) {
             volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + 8*led_byte + offset, strip);
 
             if (strip_curr[strip] < strip_sizes[strip]) {
-                uint8_t byte = ~*(usb_bit_buffer + dma_buffer_next_byte);
+                uint8_t byte = ~*(leds_usb_bit_buffer + dma_buffer_next_byte);
 
                 *bitband_addr = byte >> 7; bitband_addr += 8;
                 *bitband_addr = byte >> 6; bitband_addr += 8;
@@ -125,14 +117,13 @@ static void prepare_dma_buffer_half_mode_0() {
  */
 static void prepare_dma_buffer_half_mode_1() {
     size_t offset = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
-    volatile uint8_t* usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
     for (size_t led_byte = 0; led_byte < DMA_BUFFER_LED_N*LED_BYTE_N; led_byte++) {
         for (size_t strip = 0; strip < 8; strip++) {
             volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + 8*led_byte + offset, strip);
 
             if (strip_curr[strip] < strip_sizes[strip]) {
-                uint8_t byte = (~*(usb_bit_buffer + dma_buffer_next_byte/2)) << (4 * (dma_buffer_next_byte % 2));
+                uint8_t byte = (~*(leds_usb_bit_buffer + dma_buffer_next_byte/2)) << (4 * (dma_buffer_next_byte % 2));
 
                 *bitband_addr = byte >> 7; bitband_addr += 8;
                 *bitband_addr = byte >> 6; bitband_addr += 8;
@@ -338,8 +329,7 @@ static void leds_timer_init() {
 void leds_init() {
     // empty all buffers
     memset((void*)led_dma_buffer, 0xff, ARRAY_SIZE(led_dma_buffer));
-    memset((void*)usb_bit_buffer_1, 0x00, ARRAY_SIZE(usb_bit_buffer_1));
-    memset((void*)usb_bit_buffer_2, 0x00, ARRAY_SIZE(usb_bit_buffer_2));
+    memset((void*)leds_usb_bit_buffer, 0x00, ARRAY_SIZE(leds_usb_bit_buffer));
 
     // init GPIO, DMA and timer components
     leds_gpio_init();
@@ -353,8 +343,7 @@ void leds_init() {
 void leds_send() {
     image_shown = false;
 
-    // handle double buffer
-    leds_usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
+    // handle dma progress
     dma_buffer_next_byte = 0;
     memset((void*)strip_curr, 0, sizeof(strip_curr));
 
@@ -391,6 +380,10 @@ void leds_send() {
 
 void leds_wait_sent() {
     while (!image_shown) {}
+}
+
+void leds_wait_dma_progress(size_t progress) {
+    while (dma_buffer_next_byte < progress) {}
 }
 
 void leds_set_compression_mode(uint8_t mode) {
