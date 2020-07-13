@@ -10,66 +10,73 @@
 #include <iostream>
 #include <unistd.h>
 #include <stdio.h>
+#include <algorithm>
+
+#define N_SYMBOLS 1 << 8
 
 class TelecomTower {
     private:
     std::string path;
     uint8_t encoded_buffer[512-5];
-    CanonicalHuffman can_huf;
+    std::vector<std::tuple<std::bitset<N_SYMBOLS>, size_t>> canonical_huffman_code;
 
     public:
     TelecomTower(std::string path) {
         this->path = path;
+
+        uint8_t data[N_SYMBOLS];
+        for (size_t i = 0; i < sizeof(data); i++) {
+            data[i] = i;
+        }
+        update_huffman_code(data, sizeof(data));
+    }
+
+    void update_huffman_code(uint8_t* data, size_t data_size) {
+        std::vector<size_t> huffman_code_sizes = CanonicalHuffman::get_huffman_code_sizes(data, data_size, N_SYMBOLS);
+        uint8_t size_counts[N_SYMBOLS];
+        uint8_t sorted_symbols[N_SYMBOLS];
+        std::memset(size_counts, 0, sizeof(size_counts));
+        std::memset(sorted_symbols, 0, sizeof(sorted_symbols));
+        canonical_huffman_code = CanonicalHuffman::get_canonical_huffman_code(huffman_code_sizes, size_counts, sorted_symbols);
+
+        FILE* coding_file = fopen((path + "/coding").c_str(), "rb+");
+        if (coding_file == NULL) {
+            throw "Failed to open file " + path + "/coding";
+        }
+        fwrite(size_counts, 1, sizeof(size_counts), coding_file);
+        fwrite(sorted_symbols, 1, sizeof(sorted_symbols), coding_file);
+        fflush(coding_file);
+        fsync(fileno(coding_file));
+        fclose(coding_file);
     }
 
     void send(uint8_t* data, size_t data_size) {
-
-        uint8_t test_data[256];
-        for (size_t i = 0; i < 256; i++) {
-            test_data[i] = i;
-        }
-
-        std::vector<size_t> huffman_code_sizes = can_huf.get_huffman_code_sizes(test_data, 256, 256);
-        uint8_t size_counts[256];
-        uint8_t sorted_symbols[256];
-        std::memset(size_counts, 0, sizeof(size_counts));
-        std::memset(sorted_symbols, 0, sizeof(sorted_symbols));
-        std::vector<std::tuple<std::bitset<256>, size_t>> canonical_huffman_code = can_huf.get_canonical_huffman_code(huffman_code_sizes, size_counts, sorted_symbols);
-
-        /*std::ofstream coding_file;
-        coding_file.open(path + "/coding", std::ios::out | std::ios::binary);
-        coding_file.write((char*)size_counts, sizeof(size_counts));
-        coding_file.write((char*)sorted_symbols, sizeof(sorted_symbols));
-        coding_file.close();
-        sync();*/
-
-
-        for (size_t test = 0; test < 10; test++) {
         size_t offset = 0;
-        while (offset + 512-5 < data_size) {
-            //std::memset(encoded_buffer, 0, sizeof(encoded_buffer));
-            //size_t encoded_size = can_huf.encode_data(canonical_huffman_code, data, data_size, offset, encoded_buffer, sizeof(encoded_buffer));
-            size_t encoded_size = 512-5;
+        while (offset < data_size) {
+            std::memset(encoded_buffer, 0, sizeof(encoded_buffer));
+            size_t encoded_size;
+            if (canonical_huffman_code.size()) {
+                encoded_size = CanonicalHuffman::encode_data(canonical_huffman_code, data, data_size, offset, encoded_buffer, sizeof(encoded_buffer));
+            } else {
+                encoded_size = std::min(sizeof(encoded_buffer), data_size - offset);
+                std::memcpy(encoded_buffer, data + offset, encoded_size);
+            }
 
-            //std::ofstream data_file;
-            //data_file.open(path + "/data", std::ios::out | std::ios::binary);
-            FILE* data_file = fopen("../../test/data", "rb+");
+            FILE* data_file = fopen((path + "/data").c_str(), "rb+");
+            if (data_file == NULL) {
+                throw "Failed to open file " + path + "/data";
+            }
             uint8_t meta[5];
             *((uint16_t*)meta) = offset;
             *((uint16_t*)(meta + 2)) = encoded_size;
-            meta[4] = offset + encoded_size < data_size-512+5 ? 0 : 1;
-            //data_file.write((char*)meta, sizeof(meta));
-            //data_file.write((char*)data + offset, encoded_size);
+            meta[4] = offset + encoded_size < data_size ? 0 : 1;
             fwrite(meta, 1, sizeof(meta), data_file);
-            fwrite(data + offset, 1, encoded_size, data_file);
-            //data_file.close();
+            fwrite(encoded_buffer, 1, sizeof(encoded_buffer), data_file);
+            fflush(data_file);
+            fsync(fileno(data_file));
             fclose(data_file);
-            sync();
 
             offset += encoded_size;
-            
-        }
-            
         }
     }
 };

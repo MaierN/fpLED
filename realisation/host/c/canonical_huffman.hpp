@@ -11,7 +11,7 @@
 
 class CanonicalHuffman {
     public:
-    std::vector<size_t> get_huffman_code_sizes(uint8_t* raw_data, size_t raw_data_size, size_t dict_size) {
+    static std::vector<size_t> get_huffman_code_sizes(uint8_t* raw_data, size_t raw_data_size, size_t dict_size) {
         std::vector<std::tuple<size_t, uint8_t>> probability;
         for (size_t symbol = 0; symbol < dict_size; symbol++) {
             probability.push_back(std::make_tuple(0, symbol));
@@ -52,7 +52,7 @@ class CanonicalHuffman {
         return huffman_code_sizes;
     }
 
-    std::vector<std::tuple<std::bitset<256>, size_t>> get_canonical_huffman_code(std::vector<size_t>& huffman_code_sizes, uint8_t* size_counts, uint8_t* sorted_symbols) {
+    static std::vector<std::tuple<std::bitset<256>, size_t>> get_canonical_huffman_code(std::vector<size_t>& huffman_code_sizes, uint8_t* size_counts, uint8_t* sorted_symbols) {
         bool same_code_length_flag = false;
         // for each code size, count number of symbols with this code size
         std::vector<size_t> size_counts_big;
@@ -107,12 +107,13 @@ class CanonicalHuffman {
         }
         if (same_code_length_flag) {
             size_counts[0] = 1;
+            canonical_code.clear();
         }
 
         return canonical_code;
     }
 
-    size_t encode_data(std::vector<std::tuple<std::bitset<256>, size_t>>& canonical_code, uint8_t* raw_data, size_t raw_data_size, size_t offset, uint8_t* encoded_data, size_t encoded_data_size) {
+    static size_t encode_data(std::vector<std::tuple<std::bitset<256>, size_t>>& canonical_code, uint8_t* raw_data, size_t raw_data_size, size_t offset, uint8_t* encoded_data, size_t encoded_data_size) {
         size_t index = 0;
         size_t count = 0;
         for (size_t i = 0; i < raw_data_size - offset; i++) {
