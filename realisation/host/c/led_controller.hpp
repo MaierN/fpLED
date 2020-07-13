@@ -32,6 +32,7 @@ class LedController {
     uint16_t led_n;
 
     uint8_t* data_buffer;
+    size_t data_buffer_size;
 
     uint8_t encoded_buffer[512-5];
     std::vector<std::tuple<std::bitset<N_SYMBOLS>, size_t>> canonical_huffman_code;
@@ -39,10 +40,13 @@ class LedController {
 
     public:
     LedController(std::string path, uint8_t reduction_mode, uint8_t strip_n, uint16_t led_n) {
+        if (reduction_mode > 1) {
+            throw "Invalid reduction mode";
+        }
         if (strip_n > MAX_STRIP_N) {
             throw "Invalid strip_n";
         }
-        if (led_n * strip_n * LED_BYTE_N > MAX_LEDS_BUFFER_SIZE) {
+        if (led_n * strip_n * LED_BYTE_N / (reduction_mode ? 2 : 1) > MAX_LEDS_BUFFER_SIZE) {
             throw "Invalid led_n (too many LEDs for this strip_n)";
         }
         if (led_n % DMA_BUFFER_LED_N != 0) {
@@ -54,8 +58,9 @@ class LedController {
         this->strip_n = strip_n;
         this->led_n = led_n;
 
-        data_buffer = new uint8_t[strip_n * led_n * LED_BYTE_N];
-        std::memset(data_buffer, 0x00, strip_n * led_n);
+        data_buffer_size = strip_n * led_n * LED_BYTE_N / (reduction_mode ? 2 : 1);
+        data_buffer = new uint8_t[data_buffer_size];
+        std::memset(data_buffer, 0x00, data_buffer_size);
 
         uint8_t config_buffer[4] = {0};
         config_buffer[0] = reduction_mode;
@@ -90,13 +95,13 @@ class LedController {
     }
 
     void debug_set_byte(size_t index, uint8_t value) {
-        if (index < led_n * strip_n * LED_BYTE_N) {
+        if (index < data_buffer_size) {
             data_buffer[index] = value;
         }
     }
 
     void update_huffman_code() {
-        update_huffman_code(data_buffer, strip_n * led_n * LED_BYTE_N);
+        update_huffman_code(data_buffer, data_buffer_size);
     }
 
     void update_huffman_code(uint8_t* data, size_t data_size) {
@@ -119,15 +124,14 @@ class LedController {
     }
 
     void send() {
-        size_t data_size = strip_n * led_n * LED_BYTE_N;
         size_t offset = 0;
-        while (offset < data_size) {
+        while (offset < data_buffer_size) {
             std::memset(encoded_buffer, 0, sizeof(encoded_buffer));
             size_t encoded_size;
             if (canonical_huffman_code.size()) {
-                encoded_size = CanonicalHuffman::encode_data(canonical_huffman_code, data_buffer, data_size, offset, encoded_buffer, sizeof(encoded_buffer));
+                encoded_size = CanonicalHuffman::encode_data(canonical_huffman_code, data_buffer, data_buffer_size, offset, encoded_buffer, sizeof(encoded_buffer));
             } else {
-                encoded_size = std::min(sizeof(encoded_buffer), data_size - offset);
+                encoded_size = std::min(sizeof(encoded_buffer), data_buffer_size - offset);
                 std::memcpy(encoded_buffer, data_buffer + offset, encoded_size);
             }
 
@@ -138,7 +142,7 @@ class LedController {
             uint8_t meta[5];
             *((uint16_t*)meta) = offset;
             *((uint16_t*)(meta + 2)) = encoded_size;
-            meta[4] = offset + encoded_size < data_size ? 0 : 1;
+            meta[4] = offset + encoded_size < data_buffer_size ? 0 : 1;
             fwrite(meta, 1, sizeof(meta), data_file);
             fwrite(encoded_buffer, 1, sizeof(encoded_buffer), data_file);
             fflush(data_file);

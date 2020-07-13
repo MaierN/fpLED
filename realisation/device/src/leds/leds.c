@@ -25,8 +25,8 @@
  * Modifications/improvements:
  * - Removed unused parts, clean code
  * - More explicit variable names
- * - Added double buffer mechanic
- * - Added compression/decompression methods for more efficient data transfer and storage
+ * - Added waiting (synchronisation) mechanics
+ * - Added data reduction methods for more efficient data transfer and storage
  * - Various specific adjustments to fit the project's needs
  */
 

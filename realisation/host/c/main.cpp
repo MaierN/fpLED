@@ -7,7 +7,7 @@
 
 int main() {
 
-    LedController lc("../../test", 0, 8, 256);
+    LedController lc("../../test", 1, 8, 256);
 
     uint8_t test_data[1024];
     for (size_t i = 0; i < 256; i++) {
