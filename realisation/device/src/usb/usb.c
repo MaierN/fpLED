@@ -31,8 +31,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "leds/leds.h"
 #include "canonical_huffman/canonical_huffman.h"
+#include "leds/leds.h"
 #include "stm32f1xx_hal.h"
 #include "usb.h"
 #include "usb_device.h"
@@ -129,7 +129,7 @@ const uint8_t usb_filesystem_metadata[] = {
 volatile uint8_t coding_buffer[STORAGE_BLK_SIZ];
 
 void usb_init() {
-    memset((void*)coding_buffer, 0, STORAGE_BLK_SIZ);
+    memset((void *)coding_buffer, 0, STORAGE_BLK_SIZ);
     coding_buffer[0] = 1;
     for (size_t i = 0; i < 256; i++) {
         coding_buffer[256 + i] = i;
@@ -145,7 +145,7 @@ void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
             // "data" file isn't supposed to be read, fill with 0
 
             memset(buffer + i * STORAGE_BLK_SIZ, 0x00, STORAGE_BLK_SIZ);
-            
+
         } else if (block_address == CODING_FILE_BLOCK) {
             // "coding" file isn't supposed to be read, fill with 0
 
@@ -153,14 +153,13 @@ void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
 
         } else if (block_address == CONFIG_FILE_BLOCK) {
             // "config" file isn't supposed to be read, fill with 0
-            
+
             memset(buffer + i * STORAGE_BLK_SIZ, 0x00, STORAGE_BLK_SIZ);
 
         } else if (block_address < 4) {
             // filesystem metadata
-            
-            memcpy(buffer + i * STORAGE_BLK_SIZ, (void *)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), STORAGE_BLK_SIZ);
 
+            memcpy(buffer + i * STORAGE_BLK_SIZ, (void *)(usb_filesystem_metadata + (STORAGE_BLK_SIZ * block_address)), STORAGE_BLK_SIZ);
         }
 
         block_address++;
@@ -176,8 +175,8 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
         if (block_address == DATA_FILE_BLOCK) {
             // "data" file
 
-            uint16_t offset = *((uint16_t*)buffer);
-            uint16_t size = *((uint16_t*)(buffer+2));
+            uint16_t offset = *((uint16_t *)buffer);
+            uint16_t size = *((uint16_t *)(buffer + 2));
             bool do_show = buffer[4];
 
             leds_wait_dma_progress(offset + size);
@@ -195,10 +194,10 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
         } else if (block_address == CONFIG_FILE_BLOCK) {
             // "config" file
 
-            leds_set_compression_mode(buffer[0]);
-            for (size_t strip = 0; strip < STRIP_N; strip++) {
-                leds_set_strip_n_leds(*((uint16_t *)(buffer + 1 + 2*strip)), strip);
-            }
+            leds_wait_sent();
+
+            leds_set_reduction_mode(buffer[0]);
+            leds_set_number(buffer[1], *((uint16_t*)(buffer + 2)));
 
         } else if (block_address < 4) {
             // filesystem metadata is read-only (in flash) to save RAM space, ignore any write to those blocks

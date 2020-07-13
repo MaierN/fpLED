@@ -48,6 +48,8 @@
         "cstring": "cpp",
         "chrono": "cpp",
         "ctime": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp"
     }
 }

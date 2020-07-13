@@ -1,31 +1,30 @@
 
 #include "canonical_huffman.hpp"
-#include "telecom_tower.hpp"
+#include "led_controller.hpp"
 
 #include <chrono>
 #include <cstring>
 
 int main() {
 
-    TelecomTower tt("../../test");
-    uint8_t buffer[256*3*8];
-    std::memset(buffer, 0, sizeof(buffer));
+    LedController lc("../../test", 0, 8, 256);
 
-    for (size_t i = 0; i < 512; i++) {
-        buffer[i] = i%256;
+    uint8_t test_data[1024];
+    for (size_t i = 0; i < 256; i++) {
+        test_data[i] = i;
     }
-    //tt.update_huffman_code(buffer, sizeof(buffer));
+    lc.update_huffman_code(test_data, sizeof(test_data));
 
-    /*for (size_t i = 0; i < 5000; i++) {
-        buffer[i] = i % 3 == 0 ? 0x01 : 0x1;
-    }*/
-    std::memset(buffer, 0, sizeof(buffer));
-    //tt.send(buffer, sizeof(buffer));
+    //lc.send();
 
     size_t test = 0;
     size_t pos = 0;
     size_t count = 0;
     size_t max_count = 10;
+
+    for (size_t i = 0; i < 2 * 32 * 3; i+=3) {
+        lc.debug_set_byte(i, 0x01);
+    }
 
     /*for (;;) {
         if (test % 5 == 0) {
@@ -36,27 +35,21 @@ int main() {
             pos %= 256;
         }
         test++;
-        tt.send(buffer, sizeof(buffer));
+        lc.send(buffer, sizeof(buffer));
     }*/
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
     for(;;) {
         if (test % 50 == 0) {
-            buffer[pos] = 0x00;
-            pos = (pos+1) % (256*3*8);
-            buffer[pos] = 0xff;
+            lc.debug_set_byte(pos, 0x00);
+            pos = (pos+1) % (3*8*256);
+            lc.debug_set_byte(pos, 0xff);
         }
 
-        /*for (size_t i = 0; i < 64; i++) {
-            printf("%02x ", buffer[i]);
-        }
-        printf("\n");*/
-
-        /*if (test % 2 == 0) buffer[10] = 0x00;
-        else buffer[10] = 0xff;*/
+        lc.debug_set_byte(10, test % 2 == 0 ? 0x00 : 0xff);
         test += 1;
 
-        //tt.update_huffman_code(buffer, sizeof(buffer));
-        tt.send(buffer, sizeof(buffer));
+        //lc.update_huffman_code(buffer, sizeof(buffer));
+        lc.send();
         //time.sleep(0.2)
 
         count += 1;

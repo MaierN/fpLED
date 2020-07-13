@@ -33,11 +33,9 @@
 #ifndef LEDS_H
 #define LEDS_H
 
-#define STRIP_N 8    // number of LED strips in parallel
-#define LED_N 256    // number of LEDs on each pin
-#define LED_BYTE_N 3 // number of byte in each LED
+#define LEDS_BUFFER_SIZE (3*8*512)
 
-volatile uint8_t leds_usb_bit_buffer[STRIP_N * LED_N * LED_BYTE_N]; // buffer to be filled by the usb module with LED color compressed data
+volatile uint8_t leds_usb_bit_buffer[LEDS_BUFFER_SIZE]; // buffer to be filled by the usb module with LED color compressed data
 
 /**
  * Initializes the leds module, must be called before using this module
@@ -60,13 +58,13 @@ void leds_wait_sent();
 void leds_wait_dma_progress(size_t progress);
 
 /**
- * Changes the compression mode, will change how the data in leds_usb_bit_buffer is interpreted/decompressed
+ * Changes the reduction mode, will change how the data in leds_usb_bit_buffer is interpreted/decompressed
  */
-void leds_set_compression_mode(uint8_t mode);
+void leds_set_reduction_mode(uint8_t mode);
 
 /**
- * Configures the number of LEDs (0-...) on a given strip (0-7)
+ * Changes the number of used strips and the number of leds on each strip
  */
-void leds_set_strip_n_leds(size_t n_leds, size_t strip);
+void leds_set_number(uint8_t strip_n, uint16_t led_n);
 
 #endif
