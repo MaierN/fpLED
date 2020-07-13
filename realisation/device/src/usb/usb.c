@@ -187,12 +187,12 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
             uint16_t size = *((uint16_t*)(buffer+2));
             bool do_show = buffer[4];
 
-            /*canonical_huffman_decode(coding_buffer, coding_buffer + 256, buffer + i * STORAGE_BLK_SIZ + 5, leds_usb_bit_buffer + offset, size);
+            canonical_huffman_decode(coding_buffer, coding_buffer + 256, buffer + i * STORAGE_BLK_SIZ + 5, leds_usb_bit_buffer + offset, size);
 
             if (do_show) {
                 leds_wait_sent();
                 leds_send();
-            }*/
+            }
         } else if (block_address == CODING_FILE_BLOCK) {
             // "coding" file
 

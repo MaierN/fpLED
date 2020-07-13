@@ -33,8 +33,8 @@ int main() {
     }
     std::cout << std::endl << std::endl;*/
 
-    TelecomTower tt("../test");
-    uint8_t buffer[256*3*2];
+    TelecomTower tt("../../test");
+    uint8_t buffer[256*3*8];
     std::memset(buffer, 0, sizeof(buffer));
 
     /*buffer[1] = 255;

@@ -4,7 +4,7 @@ import font
 import cv2
 import numpy as np
 
-STRIP_N = 1
+STRIP_N = 8
 LED_N = 256
 SIZE = round(STRIP_N * LED_N * 3)
 
@@ -21,10 +21,14 @@ control = bytearray(4)
 control[0] = 0
 
 def update(buf):
-    with open('../test/data', 'r+b') as f:
-        f.write(buf)
-    os.sync()
-    with open('../test/control', 'r+b') as f:
+    index = 0
+    while index < len(buf):
+        with open('../test/data', 'r+b') as f:
+            f.write(b'\x00\x00\x00\x00\x01')
+            f.write(buf[index:index+512-5])
+        os.sync()
+        index += 512-5
+    with open('../test/config', 'r+b') as f:
         control[0] = (control[0] + 1) % 256
         control[1] = 0
         control[2] = 0
@@ -62,7 +66,7 @@ def set_pixel_xy(buf, strips, x, y, color):
 test = 0
 pos = -1
 count = 0
-max_count = 100
+max_count = 10
 STRIP = [0] # 5 ??
 BRIGHTNESS = 16
 STRIP_2 = [0]
