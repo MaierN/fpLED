@@ -29,7 +29,17 @@ class TelecomTower {
         if (config_file == NULL) {
             throw "Failed to open file " + path + "/config";
         }
-        uint8_t config_buffer[2] = {0, 0};
+        uint8_t config_buffer[17] = {
+            0,
+            32, 0,
+            0, 1,
+            0, 1,
+            0, 1,
+            0, 1,
+            0, 1,
+            0, 1,
+            0, 1,
+            };
         fwrite(config_buffer, 1, sizeof(config_buffer), config_file);
         fflush(config_file);
         fsync(fileno(config_file));

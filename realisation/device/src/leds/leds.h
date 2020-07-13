@@ -64,4 +64,9 @@ void leds_wait_dma_progress(size_t progress);
  */
 void leds_set_compression_mode(uint8_t mode);
 
+/**
+ * Configures the number of LEDs (0-...) on a given strip (0-7)
+ */
+void leds_set_strip_n_leds(size_t n_leds, size_t strip);
+
 #endif

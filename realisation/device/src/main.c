@@ -52,15 +52,10 @@ int main() {
     usb_init();
 
     // main loop, not used because all the work is done in interrupt handlers
-    //int a = 0;
     while (1) {
+        // blink led to show activity
         HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-
-        /*led_bit_buffer_1[a] = 0xff;
-        a = (a + 1) % (8*3*256);
-        led_bit_buffer_1[a] = 0x0;*/
-
-        HAL_Delay(1);
+        HAL_Delay(500);
     }
 }
 

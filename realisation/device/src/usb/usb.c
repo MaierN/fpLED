@@ -126,17 +126,6 @@ const uint8_t usb_filesystem_metadata[] = {
 #define CODING_FILE_BLOCK 5
 #define DATA_FILE_BLOCK 6
 
-/**
- * Configuration of the product, can be modified by writing to the "config" file
- */
-volatile static struct {
-    uint8_t compression_mode; // lets the user choose between the available compression modes
-    uint16_t n_leds;          // TODO
-} config = {
-    0x0,
-    256,
-};
-
 volatile uint8_t coding_buffer[STORAGE_BLK_SIZ];
 
 void usb_init() {
@@ -153,15 +142,19 @@ void usb_read(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
     for (size_t i = 0; i < block_count; i++) {
 
         if (block_address == DATA_FILE_BLOCK) {
-            // "data" file isn't supposed to be read, ignore this read
-        } else if (block_address == CODING_FILE_BLOCK) {
-            // "coding" file isn't supposed to be read, ignore this read
-        } else if (block_address == CONFIG_FILE_BLOCK) {
-            // "config" file
+            // "data" file isn't supposed to be read, fill with 0
+
+            memset(buffer + i * STORAGE_BLK_SIZ, 0x00, STORAGE_BLK_SIZ);
             
-            memset(buffer, 0x00, STORAGE_BLK_SIZ);
-            buffer[1] = config.compression_mode;
-            *((uint16_t *)(buffer + 2)) = config.n_leds;
+        } else if (block_address == CODING_FILE_BLOCK) {
+            // "coding" file isn't supposed to be read, fill with 0
+
+            memset(buffer + i * STORAGE_BLK_SIZ, 0x00, STORAGE_BLK_SIZ);
+
+        } else if (block_address == CONFIG_FILE_BLOCK) {
+            // "config" file isn't supposed to be read, fill with 0
+            
+            memset(buffer + i * STORAGE_BLK_SIZ, 0x00, STORAGE_BLK_SIZ);
 
         } else if (block_address < 4) {
             // filesystem metadata
@@ -202,23 +195,9 @@ void usb_write(uint8_t *buffer, uint32_t block_address, uint16_t block_count) {
         } else if (block_address == CONFIG_FILE_BLOCK) {
             // "config" file
 
-            uint8_t compression_mode = buffer[1];
-            uint16_t n_leds = *((uint16_t *)(buffer + 2));
-
-            // if any configuration value changed, must wait that the leds module finished sending previous data
-            if (compression_mode != config.compression_mode || n_leds != config.n_leds) {
-                leds_wait_sent();
-            }
-
-            // change compression mode
-            if (compression_mode != config.compression_mode) {
-                config.compression_mode = compression_mode;
-                leds_set_compression_mode(compression_mode);
-            }
-            // change led number configuration
-            if (n_leds != config.n_leds) {
-                config.n_leds = n_leds;
-                // TODO: configure number of LEDs
+            leds_set_compression_mode(buffer[0]);
+            for (size_t strip = 0; strip < STRIP_N; strip++) {
+                leds_set_strip_n_leds(*((uint16_t *)(buffer + 1 + 2*strip)), strip);
             }
 
         } else if (block_address < 4) {
