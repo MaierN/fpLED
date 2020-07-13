@@ -24,6 +24,18 @@ class TelecomTower {
     TelecomTower(std::string path) {
         this->path = path;
 
+
+        FILE* config_file = fopen((path + "/config").c_str(), "rb+");
+        if (config_file == NULL) {
+            throw "Failed to open file " + path + "/config";
+        }
+        uint8_t config_buffer[2] = {0, 1};
+        fwrite(config_buffer, 1, sizeof(config_buffer), config_file);
+        fflush(config_file);
+        fsync(fileno(config_file));
+        fclose(config_file);
+
+
         uint8_t data[N_SYMBOLS];
         for (size_t i = 0; i < sizeof(data); i++) {
             data[i] = i;

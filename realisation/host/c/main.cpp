@@ -8,7 +8,7 @@
 int main() {
 
     TelecomTower tt("../../test");
-    uint8_t buffer[256*3*8];
+    uint8_t buffer[256*3*4];
     std::memset(buffer, 0, sizeof(buffer));
 
     for (size_t i = 0; i < 512; i++) {
@@ -19,7 +19,7 @@ int main() {
     /*for (size_t i = 0; i < 5000; i++) {
         buffer[i] = i % 3 == 0 ? 0x01 : 0x1;
     }*/
-    //std::memset(buffer, 0, sizeof(buffer));
+    std::memset(buffer, 0, sizeof(buffer));
     //tt.send(buffer, sizeof(buffer));
 
     size_t test = 0;
@@ -40,9 +40,9 @@ int main() {
     }*/
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
     for(;;) {
-        if (test % 1 == 0) {
+        if (test % 50 == 0) {
             buffer[pos] = 0x00;
-            pos = (pos+1) % (256*3);
+            pos = (pos+1) % (256*3*4);
             buffer[pos] = 0xff;
         }
 

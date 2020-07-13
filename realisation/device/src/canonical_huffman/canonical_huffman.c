@@ -12,13 +12,9 @@ inline static bool get_bit(volatile uint8_t* buffer, uint32_t bit_index) {
 }
 
 void canonical_huffman_decode(volatile uint8_t* size_counts, volatile uint8_t* sorted_symbols, volatile uint8_t* encoded_data, volatile uint8_t* decoded_data, uint32_t decoded_size) {
-    //uint32_t encoded_index = 0;
     uint32_t decoded_index = 0;
 
     if (size_counts[0]) {
-        /*while (decoded_index < decoded_size) {
-            decoded_data[decoded_index++] = encoded_data[encoded_index++];//sorted_symbols[encoded_data[encoded_index++]];
-        }*/
         memcpy((void*)decoded_data, (void*)encoded_data, decoded_size);
         return;
     }

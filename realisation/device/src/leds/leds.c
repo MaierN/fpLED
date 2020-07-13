@@ -70,6 +70,7 @@ uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 volatile uint8_t usb_bit_buffer_1[STRIP_N * LED_N * LED_BYTE_N];
 volatile uint8_t usb_bit_buffer_2[STRIP_N * LED_N * LED_BYTE_N];
 volatile uint8_t* leds_usb_bit_buffer = usb_bit_buffer_1;
+volatile size_t dma_buffer_next_byte = sizeof(usb_bit_buffer_1);
 
 #define DMA_BUFFER_LED_N 2
 volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * DMA_BUFFER_LED_N];
@@ -78,31 +79,43 @@ volatile uint32_t reset_counter = 0;
 volatile bool image_shown = true; // true if finished showing image
 volatile uint8_t compression_mode = 0;
 
+volatile uint16_t strip_sizes[8] = {
+    LED_BYTE_N*LED_N, LED_BYTE_N*LED_N,
+    LED_BYTE_N*LED_N, LED_BYTE_N*LED_N,
+    LED_BYTE_N*LED_N, LED_BYTE_N*LED_N,
+    LED_BYTE_N*LED_N, LED_BYTE_N*LED_N
+};
+volatile uint16_t strip_curr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+
 typedef void (*prepare_dma_buffer_half_t)();
 
 /**
- * Prepare data with compression mode 0: no compression
+ * Prepare data with compression mode 0: all 8 bits of each bytes are used
  */
 static void prepare_dma_buffer_half_mode_0() {
     size_t offset = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
     volatile uint8_t* usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
-    for (size_t strip = 0; strip < 8; strip++) {
-        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + offset, strip);
+    for (size_t led_byte = 0; led_byte < DMA_BUFFER_LED_N*LED_BYTE_N; led_byte++) {
+        for (size_t strip = 0; strip < 8; strip++) {
+            volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + 8*led_byte + offset, strip);
 
-        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + led_dma_count * LED_BYTE_N * DMA_BUFFER_LED_N + strip * LED_N * LED_BYTE_N;
+            if (strip_curr[strip] < strip_sizes[strip]) {
+                uint8_t byte = ~*(usb_bit_buffer + dma_buffer_next_byte);
 
-        for (size_t i = 0; i < LED_BYTE_N * DMA_BUFFER_LED_N; i++) {
-            uint8_t byte = ~*(curr_usb_buffer + i);
+                *bitband_addr = byte >> 7; bitband_addr += 8;
+                *bitband_addr = byte >> 6; bitband_addr += 8;
+                *bitband_addr = byte >> 5; bitband_addr += 8;
+                *bitband_addr = byte >> 4; bitband_addr += 8;
+                *bitband_addr = byte >> 3; bitband_addr += 8;
+                *bitband_addr = byte >> 2; bitband_addr += 8;
+                *bitband_addr = byte >> 1; bitband_addr += 8;
+                *bitband_addr = byte >> 0; bitband_addr += 8;
 
-            *bitband_addr = byte >> 7; bitband_addr += 8;
-            *bitband_addr = byte >> 6; bitband_addr += 8;
-            *bitband_addr = byte >> 5; bitband_addr += 8;
-            *bitband_addr = byte >> 4; bitband_addr += 8;
-            *bitband_addr = byte >> 3; bitband_addr += 8;
-            *bitband_addr = byte >> 2; bitband_addr += 8;
-            *bitband_addr = byte >> 1; bitband_addr += 8;
-            *bitband_addr = byte >> 0; bitband_addr += 8;
+                dma_buffer_next_byte++;
+                strip_curr[strip]++;
+            }
+
         }
     }
 }
@@ -111,25 +124,29 @@ static void prepare_dma_buffer_half_mode_0() {
  * Prepare data with compression mode 1: only the 4 MSB of each bytes are sent
  */
 static void prepare_dma_buffer_half_mode_1() {
-    size_t first_half = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
+    size_t offset = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
     volatile uint8_t* usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
 
-    for (size_t strip = 0; strip < 8; strip++) {
-        volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + first_half, strip);
+    for (size_t led_byte = 0; led_byte < DMA_BUFFER_LED_N*LED_BYTE_N; led_byte++) {
+        for (size_t strip = 0; strip < 8; strip++) {
+            volatile uint32_t* bitband_addr = BITBANDING_GET_ADDRESS(led_dma_buffer + 8*led_byte + offset, strip);
 
-        volatile uint8_t* curr_usb_buffer = usb_bit_buffer + led_dma_count * LED_BYTE_N * DMA_BUFFER_LED_N / 2  + strip * LED_N * LED_BYTE_N / 2;
+            if (strip_curr[strip] < strip_sizes[strip]) {
+                uint8_t byte = (~*(usb_bit_buffer + dma_buffer_next_byte/2)) << (4 * (dma_buffer_next_byte % 2));
 
-        for (size_t i = 0; i < LED_BYTE_N * DMA_BUFFER_LED_N; i++) {
-            uint8_t byte = (~*(curr_usb_buffer + i/2)) << (4 * (i % 2));
+                *bitband_addr = byte >> 7; bitband_addr += 8;
+                *bitband_addr = byte >> 6; bitband_addr += 8;
+                *bitband_addr = byte >> 5; bitband_addr += 8;
+                *bitband_addr = byte >> 4; bitband_addr += 8;
+                *bitband_addr = 1; bitband_addr += 8;
+                *bitband_addr = 1; bitband_addr += 8;
+                *bitband_addr = 1; bitband_addr += 8;
+                *bitband_addr = 1; bitband_addr += 8;
 
-            *bitband_addr = byte >> 7; bitband_addr += 8;
-            *bitband_addr = byte >> 6; bitband_addr += 8;
-            *bitband_addr = byte >> 5; bitband_addr += 8;
-            *bitband_addr = byte >> 4; bitband_addr += 8;
-            *bitband_addr = 1; bitband_addr += 8;
-            *bitband_addr = 1; bitband_addr += 8;
-            *bitband_addr = 1; bitband_addr += 8;
-            *bitband_addr = 1; bitband_addr += 8;
+                dma_buffer_next_byte++;
+                strip_curr[strip]++;
+            }
+
         }
     }
 }
@@ -338,6 +355,8 @@ void leds_send() {
 
     // handle double buffer
     leds_usb_bit_buffer = leds_usb_bit_buffer == usb_bit_buffer_2 ? usb_bit_buffer_1 : usb_bit_buffer_2;
+    dma_buffer_next_byte = 0;
+    memset((void*)strip_curr, 0, sizeof(strip_curr));
 
     led_dma_count = 0;
     prepare_dma_buffer_half();
