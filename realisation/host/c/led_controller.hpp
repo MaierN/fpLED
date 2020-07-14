@@ -87,11 +87,28 @@ class LedController {
         delete[] data_buffer;
     }
 
+    void set_byte_value(size_t index, uint8_t value) {
+        if (reduction_mode) {
+            size_t i = index/2;
+            uint8_t val = value & 0xf0;
+            if (index % 2 == 0) {
+                data_buffer[i] &= 0x0f;
+                data_buffer[i] |= val;
+            } else {
+                data_buffer[i] &= 0xf0;
+                data_buffer[i] |= val >> 4;
+            }
+        } else {
+            data_buffer[index] = value;
+        }
+    }
+
     void set_pixel_color(uint8_t strip, size_t pixel, ColorRGB color) {
         size_t index = strip_n * pixel * LED_BYTE_N + strip;
-        data_buffer[index] = color.g;
-        data_buffer[index+strip_n] = color.r;
-        data_buffer[index+2*strip_n] = color.b;
+
+        set_byte_value(index, color.g);
+        set_byte_value(index + strip_n, color.r);
+        set_byte_value(index + 2*strip_n, color.b);
     }
 
     void debug_set_byte(size_t index, uint8_t value) {

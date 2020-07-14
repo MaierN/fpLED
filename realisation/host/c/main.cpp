@@ -1,48 +1,42 @@
 
 #include "canonical_huffman.hpp"
 #include "led_controller.hpp"
+#include "neopixel_matrix.hpp"
 
 #include <chrono>
 #include <cstring>
 
 int main() {
 
-    LedController lc("../../test", 1, 8, 256);
+    LedController lc("../../test", 0, 5, 256);
 
-    uint8_t test_data[1024];
+    uint8_t test_data[4096];
     for (size_t i = 0; i < 256; i++) {
         test_data[i] = i;
     }
     lc.update_huffman_code(test_data, sizeof(test_data));
 
-    //lc.send();
+    NeopixelMatrix matrix_0(lc, 4, 64, 8, 8);
 
     size_t test = 0;
     size_t pos = 0;
     size_t count = 0;
     size_t max_count = 10;
 
-    for (size_t i = 0; i < 2 * 32 * 3; i+=3) {
-        lc.debug_set_byte(i, 0x01);
-    }
-
-    /*for (;;) {
-        if (test % 5 == 0) {
-            buffer[25] = pos;
-            buffer[420] = pos;
-            printf("%i\n", pos);
-            pos++;
-            pos %= 256;
-        }
-        test++;
-        lc.send(buffer, sizeof(buffer));
-    }*/
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
     for(;;) {
-        if (test % 50 == 0) {
+        if (test % 10 == 0) {
+            for (size_t i = 0; i < 8; i++) {
+                matrix_0.set_pixel_color(i, pos%8, {0, 0, 0});
+            }
+
             lc.debug_set_byte(pos, 0x00);
             pos = (pos+1) % (3*8*256);
             lc.debug_set_byte(pos, 0xff);
+
+            for (size_t i = 0; i < 8; i++) {
+                matrix_0.set_pixel_color(i, pos%8, {0, 16, 16});
+            }
         }
 
         lc.debug_set_byte(10, test % 2 == 0 ? 0x00 : 0xff);
