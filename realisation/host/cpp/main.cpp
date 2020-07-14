@@ -26,7 +26,7 @@ int main(int argc, char** argv) {
     size_t test = 0;
     size_t pos = 0;
     size_t count = 0;
-    size_t max_count = 10;
+    size_t max_count = 100;
 
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
     for(;;) {
@@ -49,7 +49,6 @@ int main(int argc, char** argv) {
 
         //lc.update_huffman_code(buffer, sizeof(buffer));
         lc.render();
-        //time.sleep(0.2)
 
         count += 1;
 

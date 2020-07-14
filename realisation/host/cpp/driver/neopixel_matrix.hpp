@@ -5,14 +5,13 @@
 #include "led_controller.hpp"
 
 class NeopixelMatrix {
-    private:
+    public:
     LedController* lc;
     uint8_t strip;
     size_t offset;
     size_t x_size;
     size_t y_size;
 
-    public:
     NeopixelMatrix(LedController& lc, uint8_t strip, size_t offset, size_t x_size, size_t y_size) {
         this->lc = &lc;
         this->strip = strip;
