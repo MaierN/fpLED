@@ -16,21 +16,21 @@ int main(int argc, char** argv) {
 
     size_t param_i = 0;
     std::cout << "Running benchmark with the following parameters:" << std::endl;
-    std::cout << "    path_to_device: " << argv[param_i++] << std::endl;
-    std::cout << "    strip_n: " << argv[param_i++] << std::endl;
-    std::cout << "    led_n: " << argv[param_i++] << std::endl;
-    std::cout << "    do_gamma_correction: " << argv[param_i++] << std::endl;
-    std::cout << "    use_data_reduction: " << argv[param_i++] << std::endl;
-    std::cout << "    use_huffman_coding: " << argv[param_i++] << std::endl;
-    std::cout << "    recompute_code: " << argv[param_i++] << std::endl;
-    std::cout << "    random_colors: " << argv[param_i++] << std::endl;
-    std::cout << "    background_percentage: " << argv[param_i++] << std::endl;
-    std::cout << "    max_r: " << argv[param_i++] << std::endl;
-    std::cout << "    max_g: " << argv[param_i++] << std::endl;
-    std::cout << "    max_b: " << argv[param_i++] << std::endl;
-    std::cout << "    background_r: " << argv[param_i++] << std::endl;
-    std::cout << "    background_g: " << argv[param_i++] << std::endl;
-    std::cout << "    background_b: " << argv[param_i++] << std::endl;
+    std::cout << "    path_to_device: " << argv[++param_i] << std::endl;
+    std::cout << "    strip_n: " << argv[++param_i] << std::endl;
+    std::cout << "    led_n: " << argv[++param_i] << std::endl;
+    std::cout << "    do_gamma_correction: " << argv[++param_i] << std::endl;
+    std::cout << "    use_data_reduction: " << argv[++param_i] << std::endl;
+    std::cout << "    use_huffman_coding: " << argv[++param_i] << std::endl;
+    std::cout << "    recompute_code: " << argv[++param_i] << std::endl;
+    std::cout << "    random_colors: " << argv[++param_i] << std::endl;
+    std::cout << "    background_percentage: " << argv[++param_i] << std::endl;
+    std::cout << "    max_r: " << argv[++param_i] << std::endl;
+    std::cout << "    max_g: " << argv[++param_i] << std::endl;
+    std::cout << "    max_b: " << argv[++param_i] << std::endl;
+    std::cout << "    background_r: " << argv[++param_i] << std::endl;
+    std::cout << "    background_g: " << argv[++param_i] << std::endl;
+    std::cout << "    background_b: " << argv[++param_i] << std::endl;
     std::cout << "(total: " << param_i << " parameters)" << std::endl << std::endl;
 
     std::random_device rd;
@@ -79,19 +79,22 @@ int main(int argc, char** argv) {
 
     size_t count = 0;
     size_t max_count = 64;
+    size_t total_sent_size = 0;
     std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
     for(;;) {
         if (recompute_code) {
             lc.update_huffman_code();
         }
-        lc.render();
+        total_sent_size += lc.render();
 
         count++;
         if (count % max_count == 0) {
             std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
-            double fps = max_count/(std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count()/1000000.0);
-            std::cout << "fps: " << fps << std::endl;
+            double elapsed_seconds = (std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count()/1000000.0);
+            double fps = max_count/elapsed_seconds;
+            std::cout << "fps: " << fps << " (" << (total_sent_size/1000.0 / elapsed_seconds) << " KB/s)" << std::endl;
             t0 = t1;
+            total_sent_size = 0;
         }
     }
 

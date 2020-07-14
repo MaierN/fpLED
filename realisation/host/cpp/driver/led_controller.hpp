@@ -159,7 +159,8 @@ class LedController {
         write_to_file(path + "/coding", coding_buffer, sizeof(coding_buffer));
     }
 
-    void render() {
+    size_t render() {
+        size_t total_sent_size = 0;
         size_t offset = 0;
         while (offset < data_buffer_size) {
             size_t encoded_size;
@@ -175,9 +176,13 @@ class LedController {
             data_send_buffer[4] = offset + encoded_size < data_buffer_size ? 0 : 1;
 
             write_to_file(path + "/data", data_send_buffer, sizeof(data_send_buffer));
+            
+            total_sent_size += sizeof(data_send_buffer);
 
             offset += encoded_size;
         }
+
+        return total_sent_size;
     }
 };
 

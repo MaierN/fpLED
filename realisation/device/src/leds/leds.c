@@ -387,7 +387,7 @@ void leds_set_reduction_mode(uint8_t mode) {
 }
 
 void leds_set_number(uint8_t new_strip_n, uint16_t new_led_n) {
-    if (new_strip_n <= MAX_STRIP_N && new_strip_n * new_led_n * LED_BYTE_N < LEDS_BUFFER_SIZE) {
+    if (new_strip_n <= MAX_STRIP_N && new_strip_n * new_led_n * LED_BYTE_N <= LEDS_BUFFER_SIZE) {
         strip_n = new_strip_n;
         led_n = new_led_n;
     }
