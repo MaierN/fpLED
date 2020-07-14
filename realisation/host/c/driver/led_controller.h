@@ -5,6 +5,7 @@
 #define LED_CONTROLLER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <stddef.h>
 
 typedef uint32_t led_controller_led_t;
@@ -17,6 +18,7 @@ typedef struct {
     char* device_path;
     size_t channel_n;
     size_t led_n;
+    bool do_gamma_correction;
     led_controller_channel_t* channels;
 } led_controller_t;
 
