@@ -1,14 +1,17 @@
 
-#include "canonical_huffman.hpp"
-#include "led_controller.hpp"
-#include "neopixel_matrix.hpp"
+#include "include/led_controller.hpp"
+#include "include/neopixel_matrix.hpp"
 
 #include <chrono>
 #include <cstring>
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc < 2) {
+        std::cout << "Required argument: path to device" << std::endl;
+        return 0;
+    }
 
-    LedController lc("../../test", true, 0, 5, 256);
+    LedController lc(argv[1], true, 0, 5, 256);
 
     uint8_t test_data[4096];
     for (size_t i = 0; i < 256; i++) {
