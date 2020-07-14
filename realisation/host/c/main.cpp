@@ -8,7 +8,7 @@
 
 int main() {
 
-    LedController lc("../../test", 0, 5, 256);
+    LedController lc("../../test", true, 0, 5, 256);
 
     uint8_t test_data[4096];
     for (size_t i = 0; i < 256; i++) {
@@ -35,7 +35,7 @@ int main() {
             lc.debug_set_byte(pos, 0xff);
 
             for (size_t i = 0; i < 8; i++) {
-                matrix_0.set_pixel_color(i, pos%8, {0, 16, 16});
+                matrix_0.set_pixel_color(i, pos%8, {0, 60, 60});
             }
         }
 
