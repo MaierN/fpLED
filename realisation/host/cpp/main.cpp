@@ -1,13 +1,15 @@
 
-#include "include/led_controller.hpp"
-#include "include/neopixel_matrix.hpp"
+#include "driver/led_controller.hpp"
+#include "driver/neopixel_matrix.hpp"
 
 #include <chrono>
 #include <cstring>
+#include <iostream>
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::cout << "Required argument: path to device" << std::endl;
+        std::cout << "Usage:" << std::endl;
+        std::cout << argv[0] << " path_to_device" << std::endl;
         return 0;
     }
 
@@ -42,11 +44,11 @@ int main(int argc, char** argv) {
             }
         }
 
-        lc.debug_set_byte(10, test % 2 == 0 ? 0x00 : 0xff);
+        lc.debug_set_byte(0, test % 2 == 0 ? 0x00 : 0xff);
         test += 1;
 
         //lc.update_huffman_code(buffer, sizeof(buffer));
-        lc.send();
+        lc.render();
         //time.sleep(0.2)
 
         count += 1;

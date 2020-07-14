@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <algorithm>
 
-#define N_SYMBOLS 1 << 8
+#define N_SYMBOLS (1 << 8)
 #define MAX_STRIP_N 8
 #define MAX_LEDS_BUFFER_SIZE (3*8*512)
 #define LED_BYTE_N 3
@@ -54,9 +54,21 @@ class LedController {
     uint8_t* data_buffer;
     size_t data_buffer_size;
 
-    uint8_t encoded_buffer[512-5];
+    uint8_t data_send_buffer[512];
+    uint8_t* encoded_buffer = data_send_buffer + 5;
+    size_t encoded_buffer_size = sizeof(data_send_buffer) - 5;
     std::vector<std::tuple<std::bitset<N_SYMBOLS>, size_t>> canonical_huffman_code;
 
+    void write_to_file(std::string path, uint8_t* data, size_t data_size) {
+        FILE* file = fopen(path.c_str(), "rb+");
+        if (file == NULL) {
+            throw "Failed to open file " + path;
+        }
+        fwrite(data, 1, data_size, file);
+        fflush(file);
+        fsync(fileno(file));
+        fclose(file);
+    }
 
     public:
     LedController(std::string path, bool do_gamma_correction, uint8_t reduction_mode, uint8_t strip_n, uint16_t led_n) {
@@ -87,15 +99,7 @@ class LedController {
         config_buffer[0] = reduction_mode;
         config_buffer[1] = strip_n;
         *((uint16_t*)(config_buffer + 2)) = led_n;
-
-        FILE* config_file = fopen((path + "/config").c_str(), "rb+");
-        if (config_file == NULL) {
-            throw "Failed to open file " + path + "/config";
-        }
-        fwrite(config_buffer, 1, sizeof(config_buffer), config_file);
-        fflush(config_file);
-        fsync(fileno(config_file));
-        fclose(config_file);
+        write_to_file(path + "/config", config_buffer, sizeof(config_buffer));
 
         uint8_t data[N_SYMBOLS];
         for (size_t i = 0; i < sizeof(data); i++) {
@@ -148,48 +152,29 @@ class LedController {
 
     void update_huffman_code(uint8_t* data, size_t data_size) {
         std::vector<size_t> huffman_code_sizes = CanonicalHuffman::get_huffman_code_sizes(data, data_size, N_SYMBOLS);
-        uint8_t size_counts[N_SYMBOLS];
-        uint8_t sorted_symbols[N_SYMBOLS];
-        std::memset(size_counts, 0, sizeof(size_counts));
-        std::memset(sorted_symbols, 0, sizeof(sorted_symbols));
-        canonical_huffman_code = CanonicalHuffman::get_canonical_huffman_code(huffman_code_sizes, size_counts, sorted_symbols);
+        uint8_t coding_buffer[N_SYMBOLS * 2];
+        std::memset(coding_buffer, 0, sizeof(coding_buffer));
 
-        FILE* coding_file = fopen((path + "/coding").c_str(), "rb+");
-        if (coding_file == NULL) {
-            throw "Failed to open file " + path + "/coding";
-        }
-        fwrite(size_counts, 1, sizeof(size_counts), coding_file);
-        fwrite(sorted_symbols, 1, sizeof(sorted_symbols), coding_file);
-        fflush(coding_file);
-        fsync(fileno(coding_file));
-        fclose(coding_file);
+        canonical_huffman_code = CanonicalHuffman::get_canonical_huffman_code(huffman_code_sizes, coding_buffer, coding_buffer + N_SYMBOLS);
+        write_to_file(path + "/coding", coding_buffer, sizeof(coding_buffer));
     }
 
-    void send() {
+    void render() {
         size_t offset = 0;
         while (offset < data_buffer_size) {
-            std::memset(encoded_buffer, 0, sizeof(encoded_buffer));
             size_t encoded_size;
             if (canonical_huffman_code.size()) {
-                encoded_size = CanonicalHuffman::encode_data(canonical_huffman_code, data_buffer, data_buffer_size, offset, encoded_buffer, sizeof(encoded_buffer));
+                encoded_size = CanonicalHuffman::encode_data(canonical_huffman_code, data_buffer, data_buffer_size, offset, encoded_buffer, encoded_buffer_size);
             } else {
-                encoded_size = std::min(sizeof(encoded_buffer), data_buffer_size - offset);
+                encoded_size = std::min(encoded_buffer_size, data_buffer_size - offset);
                 std::memcpy(encoded_buffer, data_buffer + offset, encoded_size);
             }
 
-            FILE* data_file = fopen((path + "/data").c_str(), "rb+");
-            if (data_file == NULL) {
-                throw "Failed to open file " + path + "/data";
-            }
-            uint8_t meta[5];
-            *((uint16_t*)meta) = offset;
-            *((uint16_t*)(meta + 2)) = encoded_size;
-            meta[4] = offset + encoded_size < data_buffer_size ? 0 : 1;
-            fwrite(meta, 1, sizeof(meta), data_file);
-            fwrite(encoded_buffer, 1, sizeof(encoded_buffer), data_file);
-            fflush(data_file);
-            fsync(fileno(data_file));
-            fclose(data_file);
+            *((uint16_t*)data_send_buffer) = offset;
+            *((uint16_t*)(data_send_buffer + 2)) = encoded_size;
+            data_send_buffer[4] = offset + encoded_size < data_buffer_size ? 0 : 1;
+
+            write_to_file(path + "/data", data_send_buffer, sizeof(data_send_buffer));
 
             offset += encoded_size;
         }
