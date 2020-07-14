@@ -70,6 +70,26 @@ class LedController {
         fclose(file);
     }
 
+    void set_byte_value(size_t index, uint8_t value) {
+        if (do_gamma_correction) {
+            value = LED_CONTROLLER_GAMMA_CORRECTION[value];
+        }
+
+        if (reduction_mode) {
+            size_t i = index/2;
+            uint8_t val = value & 0xf0;
+            if (index % 2 == 0) {
+                data_buffer[i] &= 0x0f;
+                data_buffer[i] |= val;
+            } else {
+                data_buffer[i] &= 0xf0;
+                data_buffer[i] |= val >> 4;
+            }
+        } else {
+            data_buffer[index] = value;
+        }
+    }
+
     public:
     LedController(std::string path, bool do_gamma_correction, uint8_t reduction_mode, uint8_t strip_n, uint16_t led_n) {
         if (reduction_mode > 1) {
@@ -110,26 +130,6 @@ class LedController {
 
     ~LedController() {
         delete[] data_buffer;
-    }
-
-    void set_byte_value(size_t index, uint8_t value) {
-        if (do_gamma_correction) {
-            value = LED_CONTROLLER_GAMMA_CORRECTION[value];
-        }
-
-        if (reduction_mode) {
-            size_t i = index/2;
-            uint8_t val = value & 0xf0;
-            if (index % 2 == 0) {
-                data_buffer[i] &= 0x0f;
-                data_buffer[i] |= val;
-            } else {
-                data_buffer[i] &= 0xf0;
-                data_buffer[i] |= val >> 4;
-            }
-        } else {
-            data_buffer[index] = value;
-        }
     }
 
     void set_pixel_color(uint8_t strip, size_t pixel, ColorRGB color) {

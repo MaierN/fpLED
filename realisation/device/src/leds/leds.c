@@ -377,7 +377,7 @@ void leds_wait_sent() {
 }
 
 void leds_wait_dma_progress(size_t progress) {
-    while (dma_buffer_next_byte < progress && !image_shown) {}
+    while (dma_buffer_next_byte / (compression_mode ? 2 : 1) < progress && !image_shown) {}
 }
 
 void leds_set_reduction_mode(uint8_t mode) {

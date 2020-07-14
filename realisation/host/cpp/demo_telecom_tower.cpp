@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 
     for(;;) {
         pos_time++;
-        if (pos_time >= 10) {
+        if (pos_time >= 5) {
             for (size_t i = 0; i < 8; i++) {
                 matrices[curr_matrix].set_pixel_color(i, pos, {0, 0, 0});
             }
