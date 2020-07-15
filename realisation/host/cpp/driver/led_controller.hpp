@@ -40,9 +40,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <algorithm>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 
 #define N_SYMBOLS (1 << 8)
 #define MAX_STRIP_N 8
@@ -96,70 +93,18 @@ class LedController {
 
     std::vector<std::tuple<std::bitset<N_SYMBOLS>, size_t>> canonical_huffman_code;
 
-    class FileSyncThread {
-        private:
-        FILE* file;
-        bool should_stop = false;
-        bool is_syncing = false;
-        std::mutex mutex;
-        std::condition_variable cv_wait_to_sync;
-
-        public:
-
-        void run() {
-            std::unique_lock<std::mutex> lock(mutex);
-            while (!should_stop) {
-                while (!is_syncing && !should_stop) cv_wait_to_sync.wait(lock);
-
-                if (should_stop) return;
-
-                fsync(fileno(file));
-                fclose(file);
-
-                is_syncing = false;
-                cv_wait_to_sync.notify_one();
-            }
-        }
-
-        void stop() {
-            std::unique_lock<std::mutex> lock(mutex);
-            should_stop = true;
-            cv_wait_to_sync.notify_one();
-        }
-
-        void wait_before_sync_file() {
-            std::unique_lock<std::mutex> lock(mutex);
-            while (is_syncing) cv_wait_to_sync.wait(lock);
-        }
-
-        void sync_file(FILE* file) {
-            std::unique_lock<std::mutex> lock(mutex);
-            this->file = file;
-            is_syncing = true;
-            cv_wait_to_sync.notify_one();
-        }
-    };
-    FileSyncThread data_file_sync;
-    std::thread data_file_sync_thread;
-
     /**
      * Writes the given data to the given file, and uses fsync to ensure the device has received the changes
      */
-    void write_to_file(std::string path, uint8_t* data, size_t data_size, bool threaded_sync) {
-        data_file_sync.wait_before_sync_file();
-
+    void write_to_file(std::string path, uint8_t* data, size_t data_size) {
         FILE* file = fopen(path.c_str(), "rb+");
         if (file == NULL) {
             throw "Failed to open file " + path;
         }
         fwrite(data, 1, data_size, file);
         fflush(file);
-        if (threaded_sync) {
-            data_file_sync.sync_file(file);
-        } else {
-            fsync(fileno(file));
-            fclose(file);
-        }
+        fsync(fileno(file));
+        fclose(file);
     }
 
     /**
@@ -216,7 +161,7 @@ class LedController {
         config_buffer[0] = reduction_mode;
         config_buffer[1] = strip_n;
         *((uint16_t*)(config_buffer + 2)) = led_n;
-        write_to_file(path + "/config", config_buffer, sizeof(config_buffer), false);
+        write_to_file(path + "/config", config_buffer, sizeof(config_buffer));
 
         // sends coding to device: no huffman code
         uint8_t data[N_SYMBOLS];
@@ -224,8 +169,6 @@ class LedController {
             data[i] = i;
         }
         update_huffman_code(data, sizeof(data));
-
-        data_file_sync_thread = std::thread(&FileSyncThread::run, &data_file_sync);
     }
 
     ~LedController() {
@@ -259,7 +202,7 @@ class LedController {
         std::memset(coding_buffer, 0, sizeof(coding_buffer));
 
         canonical_huffman_code = CanonicalHuffman::get_canonical_huffman_code(huffman_code_sizes, coding_buffer, coding_buffer + N_SYMBOLS);
-        write_to_file(path + "/coding", coding_buffer, sizeof(coding_buffer), false);
+        write_to_file(path + "/coding", coding_buffer, sizeof(coding_buffer));
     }
 
     /**
@@ -281,7 +224,7 @@ class LedController {
             *((uint16_t*)(data_send_buffer + 2)) = encoded_size;
             data_send_buffer[4] = offset + encoded_size < data_buffer_size ? 0 : 1;
 
-            write_to_file(path + "/data", data_send_buffer, sizeof(data_send_buffer), true);
+            write_to_file(path + "/data", data_send_buffer, sizeof(data_send_buffer));
             
             total_sent_size += sizeof(data_send_buffer);
 
