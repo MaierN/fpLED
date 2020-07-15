@@ -8,7 +8,7 @@
 */
 
 /**
- * Project: HEIA-FR / Accélérateur de tour télécom
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
  *
  * Purpose: This module sends color codes on GPIO pins to control ws281x LED strips
  * 
@@ -25,17 +25,17 @@
  * Modifications/improvements:
  * - Removed unused parts, clean code
  * - More explicit variable names
- * - Added double buffer mechanic
- * - Added compression/decompression methods for more efficient data transfer and storage
+ * - Added waiting (synchronisation) mechanics
+ * - Added data reduction methods for more efficient data transfer and storage
  * - Various specific adjustments to fit the project's needs
  */
 
 #ifndef LEDS_H
 #define LEDS_H
 
-#define LEDS_BUFFER_SIZE (3*8*512)
+#define LEDS_BUFFER_SIZE (3*8*512) // size of the buffer used to store LED color data
 
-volatile uint8_t leds_usb_bit_buffer[LEDS_BUFFER_SIZE]; // buffer to be filled by the usb module with LED color compressed data
+volatile uint8_t leds_usb_bit_buffer[LEDS_BUFFER_SIZE]; // buffer to be filled by the usb module with LED color data
 
 /**
  * Initializes the leds module, must be called before using this module
@@ -58,7 +58,7 @@ void leds_wait_sent();
 void leds_wait_dma_progress(size_t progress);
 
 /**
- * Changes the reduction mode, will change how the data in leds_usb_bit_buffer is interpreted/decompressed
+ * Changes the reduction mode, will change how the data in leds_usb_bit_buffer is interpreted
  */
 void leds_set_reduction_mode(uint8_t mode);
 

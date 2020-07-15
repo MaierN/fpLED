@@ -1,3 +1,32 @@
+/**
+ * Copyright (c) 2020 University of Applied Sciences Western Switzerland / Fribourg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
+ *
+ * Purpose: This module is a demo showing moving text on LED matrices
+ *
+ * Author:  Nicolas Maier
+ * Date:    June 2020
+ */
 
 #include "driver/led_controller.h"
 #include "driver/neopixel_matrix.h"
@@ -25,8 +54,8 @@ int main(int argc, char** argv) {
         argv[1], // char* device_path
         5,       // size_t channel_n
         256,     // size_t led_n
-        false,    // bool do_gamma_correction
-        NULL,       // led_controller_channel_t* channels
+        false,   // bool do_gamma_correction
+        NULL,    // led_controller_channel_t* channels
     };
     led_controller_init(&lc);
 

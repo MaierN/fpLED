@@ -20,7 +20,7 @@
  * SOFTWARE.
  *
  *
- * Project: HEIA-FR / Accélérateur de tour télécom
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
  *
  * Purpose: This module defines handlers for the various interrupts, and provides a default error handler
  *
@@ -33,7 +33,7 @@
 #include "exception_handler.h"
 
 void exception_handler_default_error() {
-    // TODO: for production use, maybe this function should reset the MCU automatically
+    // note: for production use, maybe this function should reset the MCU automatically instead of blocking the program
     volatile uint32_t count = 0;
     while (1) {
         count++;

@@ -8,7 +8,7 @@
 */
 
 /**
- * Project: HEIA-FR / Accélérateur de tour télécom
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
  *
  * Purpose: This module sends color codes on GPIO pins to control ws281x LED strips
  * 
@@ -44,6 +44,7 @@
 #define MAX_STRIP_N 8 // number of available strips in parallel
 #define LED_BYTE_N 3 // number of byte in each LED
 
+// each individual bit in the RAM is mapped to an uint32_t at a virtual address, which can be used to do operations on bits very fast (1 instruction to read or write), this is called "bit banding"
 #define BITBANDING_BASE_ADDRESS 0x20000000
 #define BITBANDING_BITBAND_ADDRESS 0x22000000
 #define BITBANDING_GET_ADDRESS(var_address, bit_offset) ((volatile uint32_t *) (BITBANDING_BITBAND_ADDRESS + ((uint32_t)(var_address - BITBANDING_BASE_ADDRESS) << 5) + (bit_offset << 2)))
@@ -69,19 +70,19 @@ uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 uint8_t strip_n = 8;  // number of LED strips in parallel
 uint16_t led_n = 256; // number of LEDs on each strip
 
-volatile size_t dma_buffer_next_byte = sizeof(leds_usb_bit_buffer);
+volatile size_t dma_buffer_next_byte = sizeof(leds_usb_bit_buffer); // next byte to be copied by the DMA completion handler
 
-#define DMA_BUFFER_LED_N 2
-volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * DMA_BUFFER_LED_N];
-volatile size_t led_dma_count = 0;
-volatile uint32_t reset_counter = 0;
+#define DMA_BUFFER_LED_N 2 // number of leds in each half of the DMA buffer
+volatile uint8_t led_dma_buffer[8 * LED_BYTE_N * 2 * DMA_BUFFER_LED_N]; // DMA buffer (source for dma_down_0)
+volatile size_t led_dma_count = 0; // number of leds already copied into led_dma_buffer
+volatile uint32_t reset_counter = 0; // counter for the "reset code"
 volatile bool image_shown = true; // true if finished showing image
-volatile uint8_t compression_mode = 0;
+volatile uint8_t reduction_mode = 0; // reduction mode (0: no reduction, 1: only 4 MSB are sent)
 
 typedef void (*prepare_dma_buffer_half_t)();
 
 /**
- * Prepare data with compression mode 0: all 8 bits of each bytes are used
+ * Prepare data with reduction mode 0: all 8 bits of each bytes are used
  */
 static void prepare_dma_buffer_half_mode_0() {
     size_t offset = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
@@ -100,7 +101,7 @@ static void prepare_dma_buffer_half_mode_0() {
             *bitband_addr = byte >> 3; bitband_addr += MAX_STRIP_N;
             *bitband_addr = byte >> 2; bitband_addr += MAX_STRIP_N;
             *bitband_addr = byte >> 1; bitband_addr += MAX_STRIP_N;
-            *bitband_addr = byte >> 0; bitband_addr += MAX_STRIP_N;
+            *bitband_addr = byte >> 0;
 
             dma_buffer_next_byte++;
 
@@ -109,7 +110,7 @@ static void prepare_dma_buffer_half_mode_0() {
 }
 
 /**
- * Prepare data with compression mode 1: only the 4 MSB of each bytes are sent
+ * Prepare data with reduction mode 1: only the 4 MSB of each bytes are sent
  */
 static void prepare_dma_buffer_half_mode_1() {
     size_t offset = led_dma_count % 2 == 0 ? 0 : 8 * LED_BYTE_N * DMA_BUFFER_LED_N;
@@ -127,7 +128,7 @@ static void prepare_dma_buffer_half_mode_1() {
             *bitband_addr = 1; bitband_addr += MAX_STRIP_N;
             *bitband_addr = 1; bitband_addr += MAX_STRIP_N;
             *bitband_addr = 1; bitband_addr += MAX_STRIP_N;
-            *bitband_addr = 1; bitband_addr += MAX_STRIP_N;
+            *bitband_addr = 1;
 
             dma_buffer_next_byte++;
 
@@ -142,7 +143,7 @@ prepare_dma_buffer_half_t prepare_dma_buffer_half_modes[] = {
 prepare_dma_buffer_half_t current_prepare_dma_buffer_half_mode;
 
 /**
- * Prepare data using the right compression mode
+ * Prepare data using the right reduction mode
  */
 static void prepare_dma_buffer_half() {
     current_prepare_dma_buffer_half_mode();
@@ -340,7 +341,7 @@ void leds_send() {
     // handle dma progress
     dma_buffer_next_byte = 0;
 
-    current_prepare_dma_buffer_half_mode = prepare_dma_buffer_half_modes[compression_mode];
+    current_prepare_dma_buffer_half_mode = prepare_dma_buffer_half_modes[reduction_mode];
     led_dma_count = 0;
     prepare_dma_buffer_half();
     prepare_dma_buffer_half();
@@ -377,12 +378,12 @@ void leds_wait_sent() {
 }
 
 void leds_wait_dma_progress(size_t progress) {
-    while (dma_buffer_next_byte / (compression_mode ? 2 : 1) < progress && !image_shown) {}
+    while (dma_buffer_next_byte / (reduction_mode ? 2 : 1) < progress && !image_shown) {}
 }
 
 void leds_set_reduction_mode(uint8_t mode) {
     if (mode < ARRAY_SIZE(prepare_dma_buffer_half_modes)) {
-        compression_mode = mode;
+        reduction_mode = mode;
     }
 }
 

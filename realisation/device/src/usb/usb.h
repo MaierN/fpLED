@@ -20,7 +20,7 @@
  * SOFTWARE.
  *
  *
- * Project: HEIA-FR / Accélérateur de tour télécom
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
  *
  * Purpose: This module handles the USB interface and simulates a mass storage device with a FAT12 filesystem
  *

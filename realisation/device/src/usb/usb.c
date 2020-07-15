@@ -20,7 +20,7 @@
  * SOFTWARE.
  *
  *
- * Project: HEIA-FR / Accélérateur de tour télécom
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
  *
  * Purpose: This module handles the USB interface and simulates a mass storage device with a FAT12 filesystem
  *
@@ -44,11 +44,12 @@
  * 
  * Here is the information contained in this array:
  * - volume label: "TELE TOWER"
- * - device total size: 45 blocks of 512 bytes = 23040 bytes
- * - device usable space: 41 blocks of 512 bytes = 20992
+ * - device total size: 7 blocks of 512 bytes = 3584 bytes
+ * - device usable space: 3 blocks of 512 bytes = 1536 bytes
  * - files:
- *   . "control": 512 bytes
- *   . "data": 20480 bytes
+ *   . "config": 512 bytes
+ *   . "coding": 512 bytes
+ *   . "data": 512 bytes
  */
 // clang-format off
 const uint8_t usb_filesystem_metadata[] = {
@@ -126,14 +127,13 @@ const uint8_t usb_filesystem_metadata[] = {
 #define CODING_FILE_BLOCK 5
 #define DATA_FILE_BLOCK 6
 
-volatile uint8_t coding_buffer[STORAGE_BLK_SIZ];
+volatile uint8_t coding_buffer[STORAGE_BLK_SIZ]; // buffer containing canonical huffman code
 
 void usb_init() {
     memset((void *)coding_buffer, 0, STORAGE_BLK_SIZ);
+
+    // by default, no huffman code is used
     coding_buffer[0] = 1;
-    for (size_t i = 0; i < 256; i++) {
-        coding_buffer[256 + i] = i;
-    }
 
     MX_USB_DEVICE_Init();
 }

@@ -20,14 +20,13 @@
  * SOFTWARE.
  *
  *
- * Project: HEIA-FR / Accélérateur de tour télécom
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
  *
  * Purpose: This module provides the main() function, which sets up the other modules
  *
  * Author:  Nicolas Maier
  * Date:    June 2020
  */
-
 
 #include "stm32f1xx_hal.h"
 

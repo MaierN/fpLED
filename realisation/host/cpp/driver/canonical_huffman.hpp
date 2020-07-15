@@ -1,3 +1,32 @@
+/**
+ * Copyright (c) 2020 University of Applied Sciences Western Switzerland / Fribourg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
+ *
+ * Purpose: This module handles canonical huffman coding (https://en.wikipedia.org/wiki/Canonical_Huffman_code)
+ *
+ * Author:  Nicolas Maier
+ * Date:    June 2020
+ */
 
 #ifndef CANONICAL_HUFFMAN_HPP
 #define CANONICAL_HUFFMAN_HPP
@@ -11,6 +40,10 @@
 
 class CanonicalHuffman {
     public:
+
+    /**
+     * Computes the size of each code in the huffman code for the given data, and gives the counts for each possible code size
+     */
     static std::vector<size_t> get_huffman_code_sizes(uint8_t* raw_data, size_t raw_data_size, size_t dict_size) {
         std::vector<std::tuple<size_t, uint8_t>> probability;
         for (size_t symbol = 0; symbol < dict_size; symbol++) {
@@ -52,7 +85,14 @@ class CanonicalHuffman {
         return huffman_code_sizes;
     }
 
+    /**
+     * Computes the canonical huffman code for the given code sizes (gives the code, size counts, and sorted symbols)
+     */
     static std::vector<std::tuple<std::bitset<256>, size_t>> get_canonical_huffman_code(std::vector<size_t>& huffman_code_sizes, uint8_t* size_counts, uint8_t* sorted_symbols) {
+        // canonical huffman coding, as described here:
+        // -> https://en.wikipedia.org/wiki/Canonical_Huffman_code
+        // -> http://pinop8.webfactional.com/mw/index.php?title=Canonical_Huffman_code
+
         bool same_code_length_flag = false;
         // for each code size, count number of symbols with this code size
         std::vector<size_t> size_counts_big;
@@ -113,7 +153,14 @@ class CanonicalHuffman {
         return canonical_code;
     }
 
+    /**
+     * Encodes the given data using the given canonical huffman code
+     */
     static size_t encode_data(std::vector<std::tuple<std::bitset<256>, size_t>>& canonical_code, uint8_t* raw_data, size_t raw_data_size, size_t offset, uint8_t* encoded_data, size_t encoded_data_size) {
+        // canonical huffman coding, as described here:
+        // -> https://en.wikipedia.org/wiki/Canonical_Huffman_code
+        // -> http://pinop8.webfactional.com/mw/index.php?title=Canonical_Huffman_code
+
         size_t index = 0;
         size_t count = 0;
         for (size_t i = 0; i < raw_data_size - offset; i++) {

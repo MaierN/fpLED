@@ -1,3 +1,32 @@
+/**
+ * Copyright (c) 2020 University of Applied Sciences Western Switzerland / Fribourg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *
+ * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
+ *
+ * Purpose: This module is a driver for the USB LED control device
+ *
+ * Author:  Nicolas Maier
+ * Date:    June 2020
+ */
 
 #ifndef TELECOM_TOWER_HPP
 #define TELECOM_TOWER_HPP
@@ -17,13 +46,17 @@
 #define MAX_LEDS_BUFFER_SIZE (3*8*512)
 #define LED_BYTE_N 3
 #define DMA_BUFFER_LED_N 4
+#define BLOCK_SIZE 512
+#define TRANSFER_PARAMETERS_SIZE 5
 
+// LED color (RGB)
 struct ColorRGB {
     uint8_t r;
     uint8_t g;
     uint8_t b;
 };
 
+// Gamma correction matrix, can be used to get more accurate colors
 // source: https://learn.adafruit.com/led-tricks-gamma-correction/the-quick-fix
 const uint8_t LED_CONTROLLER_GAMMA_CORRECTION[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -54,11 +87,15 @@ class LedController {
     uint8_t* data_buffer;
     size_t data_buffer_size;
 
-    uint8_t data_send_buffer[512];
-    uint8_t* encoded_buffer = data_send_buffer + 5;
-    size_t encoded_buffer_size = sizeof(data_send_buffer) - 5;
+    uint8_t data_send_buffer[BLOCK_SIZE]; // buffer containing transfer parameters and encoded data
+    uint8_t* encoded_buffer = data_send_buffer + TRANSFER_PARAMETERS_SIZE; // part of data_send_buffer containing the encoded data
+    size_t encoded_buffer_size = sizeof(data_send_buffer) - TRANSFER_PARAMETERS_SIZE;
+
     std::vector<std::tuple<std::bitset<N_SYMBOLS>, size_t>> canonical_huffman_code;
 
+    /**
+     * Writes the given data to the given file, and uses fsync to ensure the device has received the changes
+     */
     void write_to_file(std::string path, uint8_t* data, size_t data_size) {
         FILE* file = fopen(path.c_str(), "rb+");
         if (file == NULL) {
@@ -70,6 +107,9 @@ class LedController {
         fclose(file);
     }
 
+    /**
+     * Sets a byte in the data buffer, handling the reduction mode
+     */
     void set_byte_value(size_t index, uint8_t value) {
         if (do_gamma_correction) {
             value = LED_CONTROLLER_GAMMA_CORRECTION[value];
@@ -111,16 +151,19 @@ class LedController {
         this->strip_n = strip_n;
         this->led_n = led_n;
 
+        // allocates data buffer
         data_buffer_size = strip_n * led_n * LED_BYTE_N / (reduction_mode ? 2 : 1);
         data_buffer = new uint8_t[data_buffer_size];
         std::memset(data_buffer, 0x00, data_buffer_size);
 
+        // sends config to device
         uint8_t config_buffer[4] = {0};
         config_buffer[0] = reduction_mode;
         config_buffer[1] = strip_n;
         *((uint16_t*)(config_buffer + 2)) = led_n;
         write_to_file(path + "/config", config_buffer, sizeof(config_buffer));
 
+        // sends coding to device: no huffman code
         uint8_t data[N_SYMBOLS];
         for (size_t i = 0; i < sizeof(data); i++) {
             data[i] = i;
@@ -132,6 +175,9 @@ class LedController {
         delete[] data_buffer;
     }
 
+    /**
+     * Sets the color of a given pixel on a given strip
+     */
     void set_pixel_color(uint8_t strip, size_t pixel, ColorRGB color) {
         size_t index = strip_n * pixel * LED_BYTE_N + strip;
 
@@ -140,16 +186,16 @@ class LedController {
         set_byte_value(index + 2*strip_n, color.b);
     }
 
-    void debug_set_byte(size_t index, uint8_t value) {
-        if (index < data_buffer_size) {
-            data_buffer[index] = value;
-        }
-    }
-
+    /**
+     * Updates the huffman code using the data currently in data_buffer
+     */
     void update_huffman_code() {
         update_huffman_code(data_buffer, data_buffer_size);
     }
 
+    /**
+     * Updates the huffman code using the given data
+     */
     void update_huffman_code(uint8_t* data, size_t data_size) {
         std::vector<size_t> huffman_code_sizes = CanonicalHuffman::get_huffman_code_sizes(data, data_size, N_SYMBOLS);
         uint8_t coding_buffer[N_SYMBOLS * 2];
@@ -159,6 +205,9 @@ class LedController {
         write_to_file(path + "/coding", coding_buffer, sizeof(coding_buffer));
     }
 
+    /**
+     * Sends the prepared data to the device, encoded with the prepared huffman code
+     */
     size_t render() {
         size_t total_sent_size = 0;
         size_t offset = 0;

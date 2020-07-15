@@ -19,7 +19,7 @@
 # SOFTWARE.
 #
 #
-# Project: HEIA-FR / Accélérateur de tour télécom
+# Project: HEIA-FR / Fast ws281x LED control in parallel via USB
 #
 # Purpose: This script generates a FAT12 filesystem and prints a C array containing the filsystem's metadata
 #
