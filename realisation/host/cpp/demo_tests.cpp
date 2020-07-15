@@ -15,16 +15,16 @@ int main(int argc, char** argv) {
 
     size_t param_i = 0;
     std::cout << "Running test with the following parameters:" << std::endl;
-    std::cout << "    path_to_device: " << argv[++param_i] << std::endl;
-    std::cout << "    strip_n: " << argv[++param_i] << std::endl;
-    std::cout << "    led_n: " << argv[++param_i] << std::endl;
+    std::cout << "         path_to_device: " << argv[++param_i] << std::endl;
+    std::cout << "                strip_n: " << argv[++param_i] << std::endl;
+    std::cout << "                  led_n: " << argv[++param_i] << std::endl;
     std::cout << "    do_gamma_correction: " << argv[++param_i] << std::endl;
-    std::cout << "    use_data_reduction: " << argv[++param_i] << std::endl;
-    std::cout << "    use_huffman_coding: " << argv[++param_i] << std::endl;
-    std::cout << "    animation: " << argv[++param_i] << std::endl;
-    std::cout << "    r: " << argv[++param_i] << std::endl;
-    std::cout << "    g: " << argv[++param_i] << std::endl;
-    std::cout << "    b: " << argv[++param_i] << std::endl;
+    std::cout << "     use_data_reduction: " << argv[++param_i] << std::endl;
+    std::cout << "     use_huffman_coding: " << argv[++param_i] << std::endl;
+    std::cout << "              animation: " << argv[++param_i] << std::endl;
+    std::cout << "                      r: " << argv[++param_i] << std::endl;
+    std::cout << "                      g: " << argv[++param_i] << std::endl;
+    std::cout << "                      b: " << argv[++param_i] << std::endl;
     std::cout << "(total: " << param_i << " parameters)" << std::endl << std::endl;
 
     size_t strip_n = std::stoi(argv[2]);

@@ -16,21 +16,21 @@ int main(int argc, char** argv) {
 
     size_t param_i = 0;
     std::cout << "Running benchmark with the following parameters:" << std::endl;
-    std::cout << "    path_to_device: " << argv[++param_i] << std::endl;
-    std::cout << "    strip_n: " << argv[++param_i] << std::endl;
-    std::cout << "    led_n: " << argv[++param_i] << std::endl;
-    std::cout << "    do_gamma_correction: " << argv[++param_i] << std::endl;
-    std::cout << "    use_data_reduction: " << argv[++param_i] << std::endl;
-    std::cout << "    use_huffman_coding: " << argv[++param_i] << std::endl;
-    std::cout << "    recompute_code: " << argv[++param_i] << std::endl;
-    std::cout << "    random_colors: " << argv[++param_i] << std::endl;
+    std::cout << "           path_to_device: " << argv[++param_i] << std::endl;
+    std::cout << "                  strip_n: " << argv[++param_i] << std::endl;
+    std::cout << "                    led_n: " << argv[++param_i] << std::endl;
+    std::cout << "      do_gamma_correction: " << argv[++param_i] << std::endl;
+    std::cout << "       use_data_reduction: " << argv[++param_i] << std::endl;
+    std::cout << "       use_huffman_coding: " << argv[++param_i] << std::endl;
+    std::cout << "           recompute_code: " << argv[++param_i] << std::endl;
+    std::cout << "            random_colors: " << argv[++param_i] << std::endl;
     std::cout << "    background_percentage: " << argv[++param_i] << std::endl;
-    std::cout << "    max_r: " << argv[++param_i] << std::endl;
-    std::cout << "    max_g: " << argv[++param_i] << std::endl;
-    std::cout << "    max_b: " << argv[++param_i] << std::endl;
-    std::cout << "    background_r: " << argv[++param_i] << std::endl;
-    std::cout << "    background_g: " << argv[++param_i] << std::endl;
-    std::cout << "    background_b: " << argv[++param_i] << std::endl;
+    std::cout << "                    max_r: " << argv[++param_i] << std::endl;
+    std::cout << "                    max_g: " << argv[++param_i] << std::endl;
+    std::cout << "                    max_b: " << argv[++param_i] << std::endl;
+    std::cout << "             background_r: " << argv[++param_i] << std::endl;
+    std::cout << "             background_g: " << argv[++param_i] << std::endl;
+    std::cout << "             background_b: " << argv[++param_i] << std::endl;
     std::cout << "(total: " << param_i << " parameters)" << std::endl << std::endl;
 
     std::random_device rd;
