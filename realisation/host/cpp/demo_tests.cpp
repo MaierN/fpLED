@@ -29,7 +29,6 @@
  */
 
 #include "driver/led_controller.hpp"
-#include "driver/neopixel_matrix.hpp"
 
 #include <iostream>
 #include <string>

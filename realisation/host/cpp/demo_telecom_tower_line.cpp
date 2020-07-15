@@ -29,7 +29,7 @@
  */
 
 #include "driver/led_controller.hpp"
-#include "driver/neopixel_matrix.hpp"
+#include "driver/led_matrix.hpp"
 
 #include <iostream>
 #include <string>
@@ -45,13 +45,13 @@ int main(int argc, char** argv) {
 
     LedController lc(argv[1], false, 0, 5, 256);
 
-    std::vector<NeopixelMatrix> matrices;
-    matrices.push_back(NeopixelMatrix(lc, 0, 0, 8, 32));
-    matrices.push_back(NeopixelMatrix(lc, 1, 0, 8, 32));
-    matrices.push_back(NeopixelMatrix(lc, 2, 0, 8, 32));
-    matrices.push_back(NeopixelMatrix(lc, 3, 0, 8, 32));
-    matrices.push_back(NeopixelMatrix(lc, 4, 0, 8, 8));
-    matrices.push_back(NeopixelMatrix(lc, 4, 8*8, 8, 8));
+    std::vector<LedMatrix> matrices;
+    matrices.push_back(LedMatrix(lc, 0, 0, 8, 32));
+    matrices.push_back(LedMatrix(lc, 1, 0, 8, 32));
+    matrices.push_back(LedMatrix(lc, 2, 0, 8, 32));
+    matrices.push_back(LedMatrix(lc, 3, 0, 8, 32));
+    matrices.push_back(LedMatrix(lc, 4, 0, 8, 8));
+    matrices.push_back(LedMatrix(lc, 4, 8*8, 8, 8));
     
     ColorRGB color = {
         (uint8_t)std::stoi(argv[2]),

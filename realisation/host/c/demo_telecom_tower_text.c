@@ -29,7 +29,7 @@
  */
 
 #include "driver/led_controller.h"
-#include "driver/neopixel_matrix.h"
+#include "driver/led_matrix.h"
 #include "../font8x8/font8x8.h"
 
 #include <stdio.h>
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
     };
     led_controller_init(&lc);
 
-    neopixel_matrix_t matrices[] = {
+    led_matrix_t matrices[] = {
         {&lc, 0, 0, 8, 32},
         {&lc, 1, 0, 8, 32},
         {&lc, 2, 0, 8, 32},
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
             for (size_t i = 0; i < ARRAY_SIZE(matrices); i++) {
                 for (size_t j = 0; j < matrices[i].x_size; j++) {
                     for (size_t k = 0; k < matrices[i].y_size; k++) {
-                        neopixel_matrix_set_pixel_color(&(matrices[i]), j, k, 0);
+                        led_matrix_set_pixel_color(&(matrices[i]), j, k, 0);
                     }
                 }
             }
@@ -94,7 +94,7 @@ int main(int argc, char** argv) {
                 for (size_t j = 0; j < 8; j++) {
                     uint8_t mask = 1 << (7-j);
                     for (size_t k = 0; k < 8; k++) {
-                        neopixel_matrix_set_pixel_color(&(matrices[curr_matrix]), k, curr_pos, font8x8_basic[character < 128 ? character : '?'][7-k] & mask ? color : 0);
+                        led_matrix_set_pixel_color(&(matrices[curr_matrix]), k, curr_pos, font8x8_basic[character < 128 ? character : '?'][7-k] & mask ? color : 0);
                     }
 
                     curr_pos++;

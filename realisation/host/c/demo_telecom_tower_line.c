@@ -29,7 +29,7 @@
  */
 
 #include "driver/led_controller.h"
-#include "driver/neopixel_matrix.h"
+#include "driver/led_matrix.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
     };
     led_controller_init(&lc);
 
-    neopixel_matrix_t matrices[] = {
+    led_matrix_t matrices[] = {
         {&lc, 0, 0, 8, 32},
         {&lc, 1, 0, 8, 32},
         {&lc, 2, 0, 8, 32},
@@ -70,13 +70,13 @@ int main(int argc, char** argv) {
     size_t pos_time = 0;
     
     for (size_t i = 0; i < 8; i++) {
-        neopixel_matrix_set_pixel_color(&(matrices[curr_matrix]), i, pos, color);
+        led_matrix_set_pixel_color(&(matrices[curr_matrix]), i, pos, color);
     }
     for(;;) {
         pos_time++;
         if (pos_time >= SLOW_DOWN) {
             for (size_t i = 0; i < 8; i++) {
-                neopixel_matrix_set_pixel_color(&(matrices[curr_matrix]), i, pos, 0x00000000);
+                led_matrix_set_pixel_color(&(matrices[curr_matrix]), i, pos, 0x00000000);
             }
 
             pos++;
@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
             }
             
             for (size_t i = 0; i < 8; i++) {
-                neopixel_matrix_set_pixel_color(&(matrices[curr_matrix]), i, pos, color);
+                led_matrix_set_pixel_color(&(matrices[curr_matrix]), i, pos, color);
             }
 
             pos_time = 0;

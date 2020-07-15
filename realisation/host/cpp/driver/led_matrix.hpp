@@ -28,12 +28,12 @@
  * Date:    June 2020
  */
 
-#ifndef NEOPIXEL_MATRIX_HPP
-#define NEOPIXEL_MATRIX_HPP
+#ifndef LED_MATRIX_HPP
+#define LED_MATRIX_HPP
 
 #include "led_controller.hpp"
 
-class NeopixelMatrix {
+class LedMatrix {
     public:
     LedController* lc;
     uint8_t strip;
@@ -41,7 +41,7 @@ class NeopixelMatrix {
     size_t x_size;
     size_t y_size;
 
-    NeopixelMatrix(LedController& lc, uint8_t strip, size_t offset, size_t x_size, size_t y_size) {
+    LedMatrix(LedController& lc, uint8_t strip, size_t offset, size_t x_size, size_t y_size) {
         this->lc = &lc;
         this->strip = strip;
         this->offset = offset;

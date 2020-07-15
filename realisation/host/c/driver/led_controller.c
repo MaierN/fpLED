@@ -37,6 +37,8 @@
 
 #define LED_BYTE_N 3
 
+// Gamma correction matrix, can be used to get more accurate colors
+// source: https://learn.adafruit.com/led-tricks-gamma-correction/the-quick-fix
 static const uint8_t LED_CONTROLLER_GAMMA_CORRECTION[] = {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  1,  1,  1,

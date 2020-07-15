@@ -28,8 +28,25 @@
  * Date:    June 2020
  */
 
-#include "neopixel_matrix.h"
+#ifndef LED_MATRIX_H
+#define LED_MATRIX_H
 
-void neopixel_matrix_set_pixel_color(neopixel_matrix_t* nm, size_t x, size_t y, uint32_t color) {
-    nm->lc->channels[nm->channel].leds[nm->offset + y * nm->x_size + (y % 2 == 0 ? x : nm->x_size - 1 - x)] = color;
-}
+#include <stdint.h>
+
+#include "led_controller.h"
+
+// struct describing a LED matrix
+typedef struct {
+    led_controller_t* lc;
+    uint8_t channel;
+    size_t offset;
+    size_t x_size;
+    size_t y_size;
+} led_matrix_t;
+
+/**
+ * Sets the color of the given pixel
+ */
+void led_matrix_set_pixel_color(led_matrix_t* nm, size_t x, size_t y, uint32_t color);
+
+#endif
