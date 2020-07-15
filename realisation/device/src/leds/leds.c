@@ -68,7 +68,7 @@ uint8_t strip_pins[MAX_STRIP_N] = {GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_
 uint32_t all_pins[] = {0xffffffff}; // mask to select every pins
 
 uint8_t strip_n = 8;  // number of LED strips in parallel
-uint16_t led_n = 256; // number of LEDs on each strip
+uint16_t led_n = 512; // number of LEDs on each strip
 
 volatile size_t dma_buffer_next_byte = sizeof(leds_usb_bit_buffer); // next byte to be copied by the DMA completion handler
 
@@ -333,6 +333,9 @@ void leds_init() {
 
     // lower SysTick interrupt priority to avoid getting preemptively interrupted while executing prepare_dma_buffer_half()
     HAL_NVIC_SetPriority(SysTick_IRQn, 2, 0);
+
+    leds_send();
+    leds_wait_sent();
 }
 
 void leds_send() {
