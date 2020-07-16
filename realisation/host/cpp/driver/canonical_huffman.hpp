@@ -20,7 +20,7 @@
  * SOFTWARE.
  *
  *
- * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
+ * Project: HEIA-FR / Fast parallel ws281x LED control via USB
  *
  * Purpose: This module handles canonical huffman coding (https://en.wikipedia.org/wiki/Canonical_Huffman_code)
  *

@@ -19,7 +19,7 @@
 # SOFTWARE.
 #
 #
-# Project: HEIA-FR / Fast ws281x LED control in parallel via USB
+# Project: HEIA-FR / Fast parallel ws281x LED control via USB
 #
 # Purpose: This script compiles the demo programs (which use the C driver)
 #

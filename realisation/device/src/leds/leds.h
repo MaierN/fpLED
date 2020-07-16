@@ -8,7 +8,7 @@
 */
 
 /**
- * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
+ * Project: HEIA-FR / Fast parallel ws281x LED control via USB
  *
  * Purpose: This module sends color codes on GPIO pins to control ws281x LED strips
  * 

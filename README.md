@@ -1,4 +1,4 @@
-# HEIA-FR / Fast ws281x LED control in parallel via USB
+# HEIA-FR / Fast parallel ws281x LED control via USB
 
 Travail de Bachelor "Accélérateur de tour télécom" - 2019/2020
 

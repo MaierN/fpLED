@@ -20,7 +20,7 @@
  * SOFTWARE.
  *
  *
- * Project: HEIA-FR / Fast ws281x LED control in parallel via USB
+ * Project: HEIA-FR / Fast parallel ws281x LED control via USB
  *
  * Purpose: This module is a demo showing moving text on LED matrices
  *
