@@ -30,7 +30,7 @@
 
 #include "driver/led_controller.h"
 #include "driver/led_matrix.h"
-#include "../font8x8/font8x8.h"
+#include "../glcdfont/glcdfont.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,10 +91,9 @@ int main(int argc, char** argv) {
             for (size_t i = text_length; i > 0; i--) {
                 uint8_t character = text[i-1];
 
-                for (size_t j = 0; j < 8; j++) {
-                    uint8_t mask = 1 << (7-j);
+                for (size_t j = 0; j < 6; j++) {
                     for (size_t k = 0; k < 8; k++) {
-                        led_matrix_set_pixel_color(&(matrices[curr_matrix]), k, curr_pos, font8x8_basic[character < 128 ? character : '?'][7-k] & mask ? color : 0);
+                        led_matrix_set_pixel_color(&(matrices[curr_matrix]), k, curr_pos, glcdfont_get(character, j, k) ? color : 0);
                     }
 
                     curr_pos++;
