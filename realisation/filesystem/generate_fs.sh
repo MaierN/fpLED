@@ -26,7 +26,7 @@
 # Author:  Nicolas Maier
 # Date:    June 2020
 
-mformat -v "TELE TOWER" -t 1 -h 1 -s 7 -S 2 -C -i fs.img -c 1 -r 1 -L 1
+mformat -v "TELE TOWER" -t 1 -h 1 -s 8 -S 2 -C -i fs.img -c 1 -r 1 -L 1
 
 dd if=/dev/zero of=config bs=512 count=1
 dd if=/dev/zero of=coding bs=512 count=1
