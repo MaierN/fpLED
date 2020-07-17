@@ -28,8 +28,8 @@
  * Date:    June 2020
  */
 
-#include "driver/led_controller.h"
-#include "driver/led_matrix.h"
+#include "lib/led_controller.h"
+#include "lib/led_matrix.h"
 #include "../glcdfont/glcdfont.h"
 
 #include <stdio.h>

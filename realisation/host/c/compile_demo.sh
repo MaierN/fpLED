@@ -21,10 +21,10 @@
 #
 # Project: HEIA-FR / Fast parallel ws281x LED control via USB
 #
-# Purpose: This script compiles the demo programs (which use the C driver)
+# Purpose: This script compiles the demo programs (which use the C lib)
 #
 # Author:  Nicolas Maier
 # Date:    June 2020
 
-gcc demo_telecom_tower_line.c driver/led_controller.c driver/led_matrix.c -Ofast -Wall -Wextra -o demo_telecom_tower_line
-gcc demo_telecom_tower_text.c driver/led_controller.c driver/led_matrix.c -Ofast -Wall -Wextra -o demo_telecom_tower_text
+gcc demo_telecom_tower_line.c lib/led_controller.c lib/led_matrix.c -Ofast -Wall -Wextra -o demo_telecom_tower_line
+gcc demo_telecom_tower_text.c lib/led_controller.c lib/led_matrix.c -Ofast -Wall -Wextra -o demo_telecom_tower_text

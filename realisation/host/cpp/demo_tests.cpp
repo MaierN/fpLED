@@ -28,7 +28,7 @@
  * Date:    June 2020
  */
 
-#include "driver/led_controller.hpp"
+#include "lib/led_controller.hpp"
 
 #include <iostream>
 #include <string>

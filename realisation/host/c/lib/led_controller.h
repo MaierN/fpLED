@@ -22,7 +22,7 @@
  *
  * Project: HEIA-FR / Fast parallel ws281x LED control via USB
  *
- * Purpose: This module is a driver for the USB LED control device
+ * Purpose: This module is a lib for the USB LED control device
  *
  * Author:  Nicolas Maier
  * Date:    June 2020

@@ -21,7 +21,7 @@
 #
 # Project: HEIA-FR / Fast parallel ws281x LED control via USB
 #
-# Purpose: This script compiles the demo programs (which use the C++ driver)
+# Purpose: This script compiles the demo programs (which use the C++ lib)
 #
 # Author:  Nicolas Maier
 # Date:    June 2020

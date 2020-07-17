@@ -28,8 +28,8 @@
  * Date:    June 2020
  */
 
-#include "driver/led_controller.hpp"
-#include "driver/led_matrix.hpp"
+#include "lib/led_controller.hpp"
+#include "lib/led_matrix.hpp"
 
 #include <iostream>
 #include <string>
