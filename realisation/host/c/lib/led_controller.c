@@ -33,7 +33,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef __linux__ 
+    #include <unistd.h>
+#elif _WIN32
+    #undef UNICODE
+    #include <windows.h>
+#endif
 
 #define LED_BYTE_N 3
 
@@ -66,16 +71,24 @@ static void write_to_file(led_controller_t* lc, char* file_name, uint8_t* data, 
     strcat(path, lc->device_path);
     strcat(path, file_name);
 
-    FILE* file = fopen(path, "rb+");
-    if (file == NULL) {
-        printf("Failed to open file %s\n", path);
-        exit(1);
-    }
-    fwrite(data, 1, data_size, file);
-    fflush(file);
-    fsync(fileno(file));
-    fclose(file);
-
+    #ifdef __linux__
+        FILE* file = fopen(path, "rb+");
+        if (file == NULL) {
+            printf("Failed to open file %s\n", path);
+            exit(1);
+        }
+        fwrite(data, 1, data_size, file);
+        fflush(file);
+        fsync(fileno(file));
+        fclose(file);
+    #elif _WIN32
+        HANDLE handle = CreateFile(path, GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        DWORD count;
+        WriteFile(handle, data, data_size, &count, NULL);
+        FlushFileBuffers(handle);
+        CloseHandle(handle);
+    #endif
+    
     free(path);
 }
 

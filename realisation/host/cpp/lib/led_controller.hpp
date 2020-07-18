@@ -37,9 +37,15 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <unistd.h>
 #include <stdio.h>
 #include <algorithm>
+
+#ifdef __linux__ 
+    #include <unistd.h>
+#elif _WIN32
+    #undef UNICODE
+    #include <windows.h>
+#endif
 
 #define N_SYMBOLS (1 << 8)
 #define MAX_STRIP_N 8
@@ -97,14 +103,22 @@ class LedController {
      * Writes the given data to the given file, and uses fsync to ensure the device has received the changes
      */
     void write_to_file(std::string path, uint8_t* data, size_t data_size) {
-        FILE* file = fopen(path.c_str(), "rb+");
-        if (file == NULL) {
-            throw "Failed to open file " + path;
-        }
-        fwrite(data, 1, data_size, file);
-        fflush(file);
-        fsync(fileno(file));
-        fclose(file);
+        #ifdef __linux__
+            FILE* file = fopen(path.c_str(), "rb+");
+            if (file == NULL) {
+                throw "Failed to open file " + path;
+            }
+            fwrite(data, 1, data_size, file);
+            fflush(file);
+            fsync(fileno(file));
+            fclose(file);
+        #elif _WIN32
+            HANDLE handle = CreateFile(path.c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            DWORD count;
+            WriteFile(handle, data, data_size, &count, NULL);
+            FlushFileBuffers(handle);
+            CloseHandle(handle);
+        #endif
     }
 
     /**
@@ -216,7 +230,7 @@ class LedController {
             if (canonical_huffman_code.size()) {
                 encoded_size = CanonicalHuffman::encode_data(canonical_huffman_code, data_buffer, data_buffer_size, offset, encoded_buffer, encoded_buffer_size);
             } else {
-                encoded_size = std::min(encoded_buffer_size, data_buffer_size - offset);
+                encoded_size = (std::min)(encoded_buffer_size, data_buffer_size - offset);
                 std::memcpy(encoded_buffer, data_buffer + offset, encoded_size);
             }
 
